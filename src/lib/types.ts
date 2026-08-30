@@ -1,0 +1,335 @@
+import type { Locale } from "@/i18n/config";
+
+// Core domain model. Kept provider-agnostic so the in-memory store used by this
+// prototype can be replaced by Postgres/PostGIS without touching feature code.
+
+export type Role =
+  | "household"
+  | "worker"
+  | "contractor"
+  | "training"
+  | "admin"
+  | "government";
+
+export type CategoryId =
+  | "cleaner"
+  | "cook"
+  | "house-helper"
+  | "gardener"
+  | "plumber"
+  | "electrician"
+  | "mover"
+  // Phase 2 site trades. Kept in the same enum so one matching engine and one
+  // set of aggregated stats cover both household and construction work.
+  | "mason"
+  | "carpenter"
+  | "painter"
+  | "helper"
+  | "bar-bender";
+
+export type ServiceCategory = {
+  id: CategoryId;
+  name: string;
+  icon: string;
+  /** recurring = daily/weekly domestic help, oneoff = call-out trades */
+  kind: "recurring" | "oneoff" | "site";
+  blurb: string;
+  /** indicative monthly wage (recurring) or per-visit price (one-off), in ₹ */
+  typicalPrice: number;
+  priceUnit: "per month" | "per visit" | "per day";
+  /** Household categories are hidden from the contractor project builder. */
+  domain: "household" | "site";
+};
+
+export type LatLng = { lat: number; lng: number };
+
+export type User = {
+  id: string;
+  role: Role;
+  name: string;
+  phone: string;
+  createdAt: string;
+  /** Saved language preference, so it follows the user across devices. */
+  language?: Locale;
+};
+
+export type VerificationStepStatus = "not-started" | "pending" | "complete" | "rejected";
+
+export type VerificationRecord = {
+  workerId: string;
+  govId: { status: VerificationStepStatus; docType?: string; docNumberMasked?: string; submittedAt?: string };
+  policeCheck: { status: VerificationStepStatus; submittedAt?: string; clearedAt?: string };
+  skillCheck: { status: VerificationStepStatus; assessor?: string; score?: number; clearedAt?: string };
+  insurance: { status: VerificationStepStatus; policyNo?: string; cover?: number };
+  reviewerNote?: string;
+  decidedAt?: string;
+  submittedAt?: string;
+};
+
+export type WorkerProfile = {
+  id: string;
+  userId: string;
+  name: string;
+  photo: string; // initials-avatar seed colour handled in UI
+  phone: string;
+  locality: string;
+  district: string;
+  location: LatLng;
+  categories: CategoryId[];
+  experienceYears: number;
+  languages: string[];
+  /** ₹ per month for recurring categories, ₹ per visit for one-off trades */
+  wage: number;
+  bio: string;
+  rating: number;
+  /** how many rated jobs the average is built from */
+  ratingCount: number;
+  jobsCompleted: number;
+  /** 0-6 = Sun-Sat */
+  availableDays: number[];
+  availableFrom: string; // "08:00"
+  availableTo: string; // "13:00"
+  verified: boolean;
+  status: "active" | "onboarding" | "suspended";
+  joinedAt: string;
+};
+
+export type HouseholdProfile = {
+  id: string;
+  userId: string;
+  name: string;
+  phone: string;
+  addressLine: string;
+  locality: string;
+  district: string;
+  location: LatLng;
+  savedLocations: { label: string; addressLine: string; location: LatLng }[];
+};
+
+export type BookingType = "one-time" | "daily" | "weekly" | "recurring";
+
+export type BookingStatus =
+  | "requested"
+  | "confirmed"
+  | "en-route"
+  | "arrived"
+  | "in-progress"
+  | "completed"
+  | "cancelled"
+  | "declined";
+
+export type RecurringSchedule = {
+  days: number[];
+  time: string;
+  paused: boolean;
+  startedAt: string;
+};
+
+export type Booking = {
+  id: string;
+  householdId: string;
+  workerId: string | null;
+  category: CategoryId;
+  type: BookingType;
+  status: BookingStatus;
+  addressLine: string;
+  locality: string;
+  district: string;
+  location: LatLng;
+  date: string; // ISO date of next/only visit
+  time: string;
+  durationMins: number;
+  price: number;
+  notes?: string;
+  schedule?: RecurringSchedule;
+  paymentId?: string;
+  reviewId?: string;
+  createdAt: string;
+  completedAt?: string;
+  /** platform-paid bookings carry insurance + replacement guarantee */
+  onPlatformPayment: boolean;
+};
+
+export type Payment = {
+  id: string;
+  bookingId: string;
+  amount: number;
+  platformFee: number;
+  workerPayout: number;
+  method: "upi" | "card" | "cash";
+  status: "pending" | "paid" | "released" | "failed";
+  paidAt?: string;
+  payoutDueAt?: string;
+  reference: string;
+};
+
+export type Review = {
+  id: string;
+  bookingId: string;
+  workerId: string;
+  householdId: string;
+  householdName: string;
+  quality: number;
+  punctuality: number;
+  professionalism: number;
+  rating: number;
+  text: string;
+  verifiedJob: boolean;
+  createdAt: string;
+  status: "published" | "flagged" | "removed";
+  moderationNote?: string;
+};
+
+export type Dispute = {
+  id: string;
+  bookingId: string;
+  raisedBy: "household" | "worker";
+  raisedByName: string;
+  reason: string;
+  detail: string;
+  status: "open" | "resolved";
+  notes: { at: string; by: string; text: string }[];
+  resolution?: string;
+  createdAt: string;
+  resolvedAt?: string;
+};
+
+export type AggregatedStat = {
+  district: string;
+  trade: CategoryId;
+  period: string; // "2026-08"
+  demand: number;
+  supply: number;
+  verifiedWorkers: number;
+  filled: number;
+  avgWage: number;
+  trainingDemandSignal: number; // 0-100
+};
+
+export type Session = { userId: string; role: Role };
+
+// ------------------------------------------------- Phase 2: workforce OS --
+
+export type ContractorProfile = {
+  id: string;
+  userId: string;
+  companyName: string;
+  contactName: string;
+  phone: string;
+  gst: string;
+  district: string;
+  location: LatLng;
+  about: string;
+  rating: number;
+  ratingCount: number;
+  projectsCompleted: number;
+};
+
+export type ProjectStatus = "planning" | "hiring" | "running" | "completed";
+
+export type ProjectRequirement = { trade: CategoryId; count: number; dailyRate: number };
+
+export type Project = {
+  id: string;
+  contractorId: string;
+  name: string;
+  siteAddress: string;
+  district: string;
+  location: LatLng;
+  startDate: string;
+  durationDays: number;
+  hoursFrom: string;
+  hoursTo: string;
+  requirements: ProjectRequirement[];
+  status: ProjectStatus;
+  createdAt: string;
+  completedAt?: string;
+  /**
+   * Site work repeats daily for the run of the project, so it reuses the same
+   * RecurringSchedule shape the household side uses. One scheduling engine.
+   */
+  schedule: RecurringSchedule;
+};
+
+export type AssignmentStatus = "shortlisted" | "requested" | "confirmed" | "declined" | "completed";
+
+export type ProjectAssignment = {
+  id: string;
+  projectId: string;
+  workerId: string;
+  trade: CategoryId;
+  dailyRate: number;
+  status: AssignmentStatus;
+  createdAt: string;
+  /** ISO dates the worker checked in on site. */
+  attendance: string[];
+  paidDays: number;
+  /** Contractor's rating of the worker, and the worker's rating of the site. */
+  contractorRating?: number;
+  contractorReview?: string;
+  workerRating?: number;
+  workerReview?: string;
+};
+
+// ----------------------------------------------- Phase 3: skill passport --
+
+export type SkillAssessment = {
+  id: string;
+  workerId: string;
+  trade: CategoryId;
+  /** Quiz for low-risk trades, on-site practical for electrician/plumber. */
+  mode: "quiz" | "practical";
+  status: "scheduled" | "passed" | "failed";
+  score?: number;
+  centre?: string;
+  scheduledFor?: string;
+  takenAt?: string;
+};
+
+export type Certification = {
+  id: string;
+  workerId: string;
+  name: string;
+  issuer: string;
+  year: number;
+  /** Uploaded by the worker; verified once ops confirms the certificate. */
+  verified: boolean;
+  createdAt: string;
+};
+
+export type TrainingProviderProfile = {
+  id: string;
+  userId: string;
+  orgName: string;
+  contactName: string;
+  phone: string;
+  district: string;
+  about: string;
+};
+
+export type TrainingListing = {
+  id: string;
+  providerId: string;
+  providerName: string;
+  title: string;
+  trade: CategoryId;
+  district: string;
+  durationDays: number;
+  fee: number;
+  seats: number;
+  about: string;
+  createdAt: string;
+};
+
+// ----------------------------------------------- Phase 5: partnership ----
+
+export type PartnershipInquiry = {
+  id: string;
+  name: string;
+  department: string;
+  state: string;
+  email: string;
+  message: string;
+  createdAt: string;
+  status: "new" | "contacted";
+};
