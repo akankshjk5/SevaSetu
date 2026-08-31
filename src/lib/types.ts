@@ -154,6 +154,8 @@ export type Booking = {
   completedAt?: string;
   /** platform-paid bookings carry insurance + replacement guarantee */
   onPlatformPayment: boolean;
+  /** When the job card was delivered to the worker (WhatsApp/SMS). */
+  notifiedAt?: string;
 };
 
 export type Payment = {

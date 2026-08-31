@@ -58,6 +58,17 @@ const hi: Partial<Record<keyof typeof en, string>> = {
   "easy.helpBody": "हमें फ़ोन करें, हम आपके काम और पैसे पढ़कर सुनाएँगे।",
   "easy.callUs": "मदद के लिए फ़ोन करें",
 
+  "wa.newJob": "आपके लिए नया काम",
+  "wa.title": "कामगार को काम का कार्ड भेजा गया",
+  "wa.sentTo": "{name} को WhatsApp पर भेजा गया",
+  "wa.notSent": "अभी नहीं भेजा",
+  "wa.openApp": "स्वीकार या मना करने के लिए सेवासेतु ऐप खोलें।",
+  "wa.send": "WhatsApp पर भेजें",
+  "wa.resend": "फिर भेजें",
+  "wa.preview": "कामगार को यह मिलेगा",
+  "wa.demoNote": "इस बिल्ड में नकली प्रोवाइडर से भेजा जाता है। बटन दबाने पर वही संदेश WhatsApp में तैयार खुलता है।",
+  "wa.yourCard": "यह काम आपके WhatsApp पर भेजा गया है",
+
   "phase.live": "चालू",
   "phase.beta": "बीटा",
   "phase.roadmap": "आगे आने वाला",

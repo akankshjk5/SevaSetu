@@ -18,6 +18,8 @@ import { ProtectionPanel } from "@/components/protection";
 import { BackLink, Stars, StatusPill, VerifiedBadge, daysLabel } from "@/components/ui";
 import type { BookingStatus } from "@/lib/types";
 import { WorkerAvatar } from "@/components/WorkerAvatar";
+import { WhatsAppCard } from "@/components/WhatsAppCard";
+import { buildJobMessage, whatsappLink } from "@/lib/messages";
 
 const TRACK: BookingStatus[] = ["confirmed", "en-route", "arrived", "in-progress", "completed"];
 const METHODS = [
@@ -118,6 +120,18 @@ export default async function BookingDetail({
           )}
         </dl>
       </div>
+
+      {/* What actually reached the worker's phone when this was booked. */}
+      {worker && (
+        <WhatsAppCard
+          t={t}
+          workerName={worker.name}
+          body={buildJobMessage({ booking, worker, household }).body}
+          link={whatsappLink(worker.phone, buildJobMessage({ booking, worker, household }).body)}
+          sentAt={booking.notifiedAt}
+          dateLabel={booking.notifiedAt ? fmtDate(booking.notifiedAt) : undefined}
+        />
+      )}
 
       {!["cancelled", "declined", "requested"].includes(booking.status) && (
         <div className="card p-4">

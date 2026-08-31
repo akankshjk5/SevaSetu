@@ -15,6 +15,8 @@ import {
 } from "../src/lib/services";
 import { districtRollup, tradeRollup, verificationQueue, workerEarnings, workerReviews } from "../src/lib/repo";
 import { CATEGORIES } from "../src/lib/categories";
+import { messagesTo } from "../src/lib/integrations/notify";
+import { buildJobMessage, whatsappLink } from "../src/lib/messages";
 import {
   contractorProjects,
   impactSummary,
@@ -168,6 +170,57 @@ async function main() {
   check(
     "aggregates carry no personal identifiers",
     db().stats.every((s) => !("workerId" in s) && !("householdId" in s) && !("name" in s)),
+  );
+
+  // -------------------------------- WhatsApp job card sent to the worker
+  // A booking of its own: the one above has since been reassigned to a
+  // replacement worker, so its outbox no longer holds the original card.
+  const waWorker = data.workers.find((w) => w.verified && w.categories.includes("cook"))!;
+  const waHousehold = data.households[3];
+  const waBooking = await createBooking({
+    householdId: waHousehold.id,
+    workerId: waWorker.id,
+    category: "cook",
+    type: "recurring",
+    date: "2026-09-05",
+    time: "09:00",
+    days: [1, 2, 3, 4, 5, 6],
+    durationMins: 90,
+    price: 5500,
+    notes: "Pure veg, two people",
+  });
+
+  check("booking records that the worker was messaged", !!waBooking.notifiedAt);
+
+  const card = messagesTo(waWorker.phone)[0]?.body ?? "";
+  check("job card reached the worker's number", !!card, waWorker.phone);
+  for (const [label, needle] of [
+    ["who booked", waHousehold.name],
+    ["what work", "Cook"],
+    ["when", "09:00"],
+    ["where", waHousehold.addressLine],
+    ["how much", "5,500"],
+    ["the household note", "Pure veg"],
+  ] as const) {
+    check(`message carries ${label}`, card.includes(needle), needle);
+  }
+
+  // The worker reads it, so it is composed in the worker's language — which
+  // lives on their user record, not the worker profile.
+  const waUser = data.users.find((u) => u.id === waWorker.userId)!;
+  waUser.language = "hi";
+  const hindiCard = buildJobMessage({ booking: waBooking, worker: waWorker, household: waHousehold });
+  check(
+    "message uses the worker's own language, not the household's",
+    hindiCard.locale === "hi" && /[ऀ-ॿ]/.test(hindiCard.body),
+  );
+  waUser.language = undefined;
+
+  const link = whatsappLink(waWorker.phone, "hello ji");
+  check(
+    "wa.me link carries the country code and encoded text",
+    link.startsWith("https://wa.me/91") && link.includes("hello%20ji"),
+    link.slice(0, 42),
   );
 
   // ------------------------------------------ Phase 2: contractor journey

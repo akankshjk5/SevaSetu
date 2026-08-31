@@ -151,6 +151,32 @@ reading. Three things address that, and all of them are available to households 
   speech synthesis — no network call or account needed. It hides itself on devices with no speech support
   rather than showing a dead button.
 
+## The job card reaches the worker on WhatsApp
+
+When a household books someone, the worker is sent the same five facts they see in the app — who booked them,
+what work, when, where and how much:
+
+```
+SevaSetu — New job for you
+
+👤 Booked by: Ankit Agarwal
+🧹 What work: House cleaning
+🕐 When: 5 Sept 2026, 09:00
+📍 Where: B-142, Sector 4, Malviya Nagar
+💰 You get: ₹3,200
+📝 Notes: 2BHK, dog at home, gate code 4412
+
+Open the SevaSetu app to accept or decline.
+```
+
+- Composed by `buildJobMessage()` from the **same facts as `JobFactCard`**, so the message and the screen
+  cannot drift apart.
+- Written in the **worker's** saved language, not the household's — they are the one reading it.
+- Sent through `notifyProvider` on booking; the booking records `notifiedAt`.
+- The household's booking screen shows the literal message that went out, plus a **wa.me deep link** that
+  opens real WhatsApp with the text prefilled and addressed to the worker. That makes the flow demonstrable
+  today without a WhatsApp Business account; swapping `notifyProvider` for a real client sends it directly.
+
 ## Language layer
 
 Every user-facing string — including toasts, errors, empty states, status labels and the government pages —

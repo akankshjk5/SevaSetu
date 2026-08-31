@@ -45,6 +45,12 @@ export default async function WorkerJobDetail({ params }: { params: Promise<{ id
         }}
       />
 
+      {b.notifiedAt && (
+        <p className="flex items-center gap-2 rounded-xl bg-[#e7f7ee] px-4 py-3 text-sm font-semibold text-teal-900">
+          <span aria-hidden>💬</span> {t("wa.yourCard")}
+        </p>
+      )}
+
       <div className="card p-4">
         <div className="flex items-start justify-between gap-3">
           <div>

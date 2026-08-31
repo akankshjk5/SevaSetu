@@ -3,6 +3,7 @@ import { applyRating, getBooking, getWorker, verificationFor } from "./repo";
 import { paymentProvider, splitAmount } from "./integrations/payments";
 import { identityProvider } from "./integrations/identity";
 import { notifyProvider } from "./integrations/notify";
+import { buildJobMessage } from "./messages";
 import type { Booking, BookingStatus, BookingType, CategoryId, Payment, Review } from "./types";
 
 /**
@@ -54,11 +55,16 @@ export async function createBooking(input: CreateBookingInput): Promise<Booking>
   };
   db().bookings.push(booking);
 
-  await notifyProvider.send({
+  // The worker gets the full job card on WhatsApp, in their own language:
+  // who called them, what work, when, where and how much.
+  const message = buildJobMessage({ booking, worker, household });
+  const sent = await notifyProvider.send({
     to: worker.phone,
-    template: "new_job_request",
-    vars: { household: household.name, locality: household.locality, price: String(input.price) },
+    template: message.template,
+    vars: message.vars,
+    body: message.body,
   });
+  booking.notifiedAt = sent.ok ? new Date().toISOString() : undefined;
   return booking;
 }
 

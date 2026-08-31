@@ -61,6 +61,18 @@ const en = {
   "easy.helpBody": "Call us and we will read out your jobs and payments.",
   "easy.callUs": "Call for help",
 
+  // ------------------------------------------------------------- WhatsApp
+  "wa.newJob": "New job for you",
+  "wa.title": "Job card sent to the worker",
+  "wa.sentTo": "Sent to {name} on WhatsApp",
+  "wa.notSent": "Not sent yet",
+  "wa.openApp": "Open the SevaSetu app to accept or decline.",
+  "wa.send": "Send on WhatsApp",
+  "wa.resend": "Send again",
+  "wa.preview": "What the worker receives",
+  "wa.demoNote": "This build sends through a mock provider. The button opens WhatsApp with the same message ready to send.",
+  "wa.yourCard": "This job was sent to your WhatsApp",
+
   // ---------------------------------------------------------------- phases
   "phase.live": "Live",
   "phase.beta": "Beta",
