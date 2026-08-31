@@ -5,6 +5,7 @@ import { logout } from "@/lib/actions";
 import { getI18n } from "@/i18n/server";
 
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { EasyModeToggle } from "@/components/EasyModeToggle";
 import { WorkerAvatar } from "@/components/WorkerAvatar";
 
 const NAV = [
@@ -18,7 +19,7 @@ const NAV = [
 export default async function WorkerLayout({ children }: { children: React.ReactNode }) {
   const worker = await currentWorker();
   if (!worker) redirect("/login?role=worker");
-  const { t, locale } = await getI18n();
+  const { t, locale, simple } = await getI18n();
 
   return (
     <div className="min-h-dvh pb-20">
@@ -28,6 +29,7 @@ export default async function WorkerLayout({ children }: { children: React.React
             <span aria-hidden>🪢</span> {t("app.name")}
           </Link>
           <div className="flex items-center gap-2">
+            <EasyModeToggle simple={simple} t={t} />
             <LanguageSwitcher locale={locale} />
             <WorkerAvatar id={worker.id} name={worker.name} trade={worker.categories[0]} photo={worker.photo} size={34} />
             <form action={logout}>

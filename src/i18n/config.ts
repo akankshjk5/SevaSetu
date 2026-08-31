@@ -18,6 +18,7 @@ export const LOCALE_META: Record<Locale, { label: string; nativeLabel: string; i
 };
 
 export const LANG_COOKIE = "swp_lang";
+export const SIMPLE_COOKIE = "swp_simple";
 
 export function isLocale(value: string | undefined | null): value is Locale {
   return !!value && (LOCALES as readonly string[]).includes(value);

@@ -202,3 +202,55 @@ html[lang="hi"] .pill,
 html[lang="kn"] .pill {
   line-height: 1.6;
 }
+
+/* --- Easy mode ---------------------------------------------------------
+   Scales the whole interface up rather than restyling each screen: bigger
+   body text, bigger targets, more breathing room, stronger contrast on
+   secondary text. Built for workers who read little, offered to everyone. */
+html[data-simple="1"] {
+  font-size: 18px;
+}
+
+html[data-simple="1"] .btn {
+  min-height: 56px;
+  padding: 14px 22px;
+  font-size: 17px;
+  border-radius: 14px;
+}
+
+html[data-simple="1"] .field {
+  min-height: 58px;
+  font-size: 17px;
+}
+
+html[data-simple="1"] .pill {
+  font-size: 14px;
+  padding: 7px 14px;
+}
+
+html[data-simple="1"] .icon-tile {
+  width: 54px;
+  height: 54px;
+  font-size: 28px;
+}
+
+/* Secondary text is the first thing to become unreadable — lift it. */
+html[data-simple="1"] .text-xs {
+  font-size: 0.9rem;
+}
+html[data-simple="1"] .text-\[11px\],
+html[data-simple="1"] .text-\[10px\] {
+  font-size: 0.85rem;
+}
+html[data-simple="1"] .text-slate-500,
+html[data-simple="1"] .text-slate-600 {
+  color: #334155;
+}
+
+/* Bottom nav: bigger icons, readable labels. */
+html[data-simple="1"] nav .text-lg {
+  font-size: 1.6rem;
+}
+html[data-simple="1"] nav .text-\[11px\] {
+  font-size: 0.8rem;
+}

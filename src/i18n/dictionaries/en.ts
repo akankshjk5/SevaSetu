@@ -44,6 +44,23 @@ const en = {
   "common.you": "You",
   "common.demoNote": "Demo build — no real SMS, payment or ID check is performed.",
 
+  // ------------------------------------------------------------ easy mode
+  "easy.label": "Easy",
+  "easy.explain": "Bigger text and pictures, fewer words",
+  "easy.on": "Easy view is on",
+  "easy.listen": "Listen",
+  "easy.stop": "Stop",
+  "easy.who": "Who called you",
+  "easy.what": "What work",
+  "easy.when": "When",
+  "easy.where": "Where",
+  "easy.howMuch": "You get",
+  "easy.appointedBy": "Booked by",
+  "easy.tapToAccept": "Tap the green button to say yes",
+  "easy.helpTitle": "Need help?",
+  "easy.helpBody": "Call us and we will read out your jobs and payments.",
+  "easy.callUs": "Call for help",
+
   // ---------------------------------------------------------------- phases
   "phase.live": "Live",
   "phase.beta": "Beta",

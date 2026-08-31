@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { currentWorker } from "@/lib/session";
-import { workerBookings } from "@/lib/repo";
+import { getHousehold, workerBookings } from "@/lib/repo";
 import { getContractor, getProject, workerAssignments } from "@/lib/repo-phases";
 import { respondToAssignment, siteCheckIn } from "@/lib/actions-phases";
 import { getI18n } from "@/i18n/server";
-import { EmptyState, Section, StatusPill } from "@/components/ui";
+import { Avatar, EmptyState, Section, StatusPill } from "@/components/ui";
 import { PhaseBadge } from "@/components/PhaseBadge";
+import { CATEGORY_MAP } from "@/lib/categories";
 
 export default async function WorkerJobsPage() {
   const worker = (await currentWorker())!;
@@ -19,24 +20,33 @@ export default async function WorkerJobsPage() {
   const assignments = workerAssignments(worker.id).filter((a) => a.status !== "shortlisted");
   const today = new Date().toISOString().slice(0, 10);
 
-  const row = (b: (typeof all)[number]) => (
-    <li key={b.id}>
-      <Link href={`/worker/jobs/${b.id}`} className="card flex items-center gap-3 p-4">
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center justify-between gap-2">
-            <span className="font-semibold">{t(`cat.${b.category}`)}</span>
-            <span className="font-bold">{money(b.price)}</span>
+  const row = (b: (typeof all)[number]) => {
+    const household = getHousehold(b.householdId);
+    return (
+      <li key={b.id}>
+        <Link href={`/worker/jobs/${b.id}`} className="card flex items-center gap-3 p-4">
+          {/* Who booked you comes first: a face and a name, not a category. */}
+          <Avatar name={household?.name ?? "?"} size={44} />
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center justify-between gap-2">
+              <span className="truncate font-bold">{household?.name}</span>
+              <span className="text-lg font-extrabold text-brand">{money(b.price)}</span>
+            </span>
+            <span className="mt-0.5 flex items-center gap-1.5 text-sm">
+              <span aria-hidden>{CATEGORY_MAP[b.category].icon}</span>
+              <span className="font-semibold">{t(`cat.${b.category}`)}</span>
+            </span>
+            <span className="block text-xs text-slate-600">
+              {b.locality} · {shortDate(b.date)} · {b.time}
+            </span>
+            <span className="mt-2 block">
+              <StatusPill status={b.status} t={t} />
+            </span>
           </span>
-          <span className="block text-xs text-slate-600">
-            {b.locality} · {shortDate(b.date)} · {b.time}
-          </span>
-          <span className="mt-2 block">
-            <StatusPill status={b.status} t={t} />
-          </span>
-        </span>
-      </Link>
-    </li>
-  );
+        </Link>
+      </li>
+    );
+  };
 
   return (
     <div className="space-y-6">

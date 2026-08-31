@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Noto_Sans_Devanagari, Noto_Sans_Kannada } from "next/font/google";
 import "./globals.css";
-import { getLocale } from "@/i18n/server";
+import { getLocale, getSimpleMode } from "@/i18n/server";
 import { dictionaryFor } from "@/i18n";
 import { I18nProvider } from "@/i18n/client";
 
@@ -42,9 +42,10 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = await getLocale();
+  const simple = await getSimpleMode();
 
   return (
-    <html lang={locale}>
+    <html lang={locale} data-simple={simple ? "1" : "0"}>
       <body className={`${geist.variable} ${devanagari.variable} ${kannada.variable} antialiased`}>
         <I18nProvider locale={locale} dict={dictionaryFor(locale)}>
           {children}

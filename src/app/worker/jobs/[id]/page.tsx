@@ -4,6 +4,8 @@ import { getBooking, getHousehold, getPaymentForBooking } from "@/lib/repo";
 import { raiseDispute, respondToJob, setBookingStatus } from "@/lib/actions";
 import { getI18n } from "@/i18n/server";
 import { BackLink, StatusPill, daysLabel } from "@/components/ui";
+import { JobFactCard } from "@/components/JobFactCard";
+import { CATEGORY_MAP } from "@/lib/categories";
 
 const UPDATES = [
   { s: "en-route", key: "wk.onMyWay" },
@@ -26,6 +28,22 @@ export default async function WorkerJobDetail({ params }: { params: Promise<{ id
   return (
     <div className="space-y-5">
       <BackLink href="/worker/jobs" label={t("wk.jobs.title")} />
+
+      {/* The five facts first, icon-led and readable aloud — a worker who
+          reads little should still know who called them and for how much. */}
+      <JobFactCard
+        t={t}
+        facts={{
+          whoName: household?.name ?? "",
+          whoSub: `${b.locality}`,
+          what: t(`cat.${b.category}`),
+          whatIcon: CATEGORY_MAP[b.category].icon,
+          when: `${fmtDate(b.date)}, ${b.time}`,
+          where: b.addressLine,
+          amount: money(b.price),
+          amountSub: t("wk.jobs.afterFee"),
+        }}
+      />
 
       <div className="card p-4">
         <div className="flex items-start justify-between gap-3">

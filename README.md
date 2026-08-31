@@ -136,6 +136,21 @@ no component changes needed.
   the right face per glyph. Line-height is loosened for those two scripts, whose marks sit above and below
   the baseline and get clipped by Latin-tuned leading.
 
+## Easy mode — built for workers who read little
+
+Most people doing this work have limited formal schooling, so the worker app cannot assume comfortable
+reading. Three things address that, and all of them are available to households too:
+
+- **Easy mode toggle** (👁 in the header of the worker and household apps). Scales the whole interface rather
+  than restyling screens one by one: 18px base type, 56px action buttons, larger icons, stronger contrast on
+  secondary text. Saved to the cookie *and* the profile, so setting it once carries to another phone.
+- **"Who called you" first.** A worker's job list and job detail now lead with the household's face and name,
+  then the amount, then the work — not a service category. `JobFactCard` lays out the five facts in the order
+  workers actually ask them: who called me, what work, when, where, how much. Every row leads with a picture.
+- **Listen aloud.** `SpeakButton` reads those five facts in the chosen language using the browser's built-in
+  speech synthesis — no network call or account needed. It hides itself on devices with no speech support
+  rather than showing a dead button.
+
 ## Language layer
 
 Every user-facing string — including toasts, errors, empty states, status labels and the government pages —

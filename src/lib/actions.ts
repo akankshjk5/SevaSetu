@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { LANG_COOKIE, isLocale } from "@/i18n/config";
+import { LANG_COOKIE, SIMPLE_COOKIE, isLocale } from "@/i18n/config";
 import { db, nextId, resetDb } from "./store";
 import { clearSession, currentHousehold, currentUser, currentWorker, setSession } from "./session";
 import { smsProvider } from "./integrations/sms";
@@ -37,6 +37,27 @@ export async function setLanguage(formData: FormData) {
 
   const user = await currentUser();
   if (user) user.language = locale;
+
+  const referer = (await headers()).get("referer");
+  const back = referer ? new URL(referer).pathname + new URL(referer).search : "/";
+  revalidatePath("/", "layout");
+  redirect(back);
+}
+
+/**
+ * Easy mode: bigger type, bigger targets, fewer words. Saved to the profile as
+ * well as the cookie so a worker who sets it once keeps it on any device.
+ */
+export async function toggleSimpleMode(formData: FormData) {
+  const on = String(formData.get("on")) === "1";
+  (await cookies()).set(SIMPLE_COOKIE, on ? "1" : "0", {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  });
+
+  const user = await currentUser();
+  if (user) user.simpleMode = on;
 
   const referer = (await headers()).get("referer");
   const back = referer ? new URL(referer).pathname + new URL(referer).search : "/";

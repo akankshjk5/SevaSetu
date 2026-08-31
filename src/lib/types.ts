@@ -51,6 +51,12 @@ export type User = {
   createdAt: string;
   /** Saved language preference, so it follows the user across devices. */
   language?: Locale;
+  /**
+   * Easy mode: larger type, bigger targets, icon-first layouts and fewer words.
+   * Built for workers who may read little — but offered to everyone, because
+   * plenty of households want the simpler screen too.
+   */
+  simpleMode?: boolean;
 };
 
 export type VerificationStepStatus = "not-started" | "pending" | "complete" | "rejected";
