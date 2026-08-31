@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ZONES } from "@/lib/seed";
 import { CATEGORIES } from "@/lib/categories";
 import { demandTrend, districtRollup, tradeRollup } from "@/lib/repo";
-import { formatMonth } from "@/i18n";
+import { formatMonth, formatNumber } from "@/i18n";
 import type { Translate } from "@/i18n";
 import type { Locale } from "@/i18n/config";
 import type { CategoryId } from "@/lib/types";
@@ -159,9 +159,41 @@ export function AnalyticsDashboard({
           {district === "all" ? t("gov.allDistricts") : district} ·{" "}
           {trade === "all" ? t("gov.allTrades") : t(`cat.${trade}`)}
         </p>
-        <svg viewBox={`0 0 ${chartW} ${chartH + 24}`} className="mt-3 w-full" role="img" aria-label={t("gov.trend")}>
+        <svg
+          viewBox={`0 0 ${chartW} ${chartH + 24}`}
+          className="mt-3 w-full overflow-visible"
+          role="img"
+          aria-label={t("gov.trend")}
+        >
+          {/* Gridlines and a scale, so a value can actually be read off the
+              chart rather than only compared by eye. */}
+          {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+            <g key={f}>
+              <line x1="0" x2={chartW} y1={chartH * f} y2={chartH * f} stroke="#e2e8f0" strokeWidth="1" />
+              <text x="0" y={chartH * f - 4} fontSize="11" fill="#94a3b8">
+                {formatNumber(Math.round(maxTrend * (1 - f)), locale)}
+              </text>
+            </g>
+          ))}
           <polyline points={pointsFor("demand")} fill="none" stroke="#1e3a5f" strokeWidth="3" />
           <polyline points={pointsFor("supply")} fill="none" stroke="#d97706" strokeWidth="3" strokeDasharray="6 4" />
+          {/* Point markers make each month a readable data point. */}
+          {trend.map((x, i) => {
+            const px = (i / Math.max(1, trend.length - 1)) * chartW;
+            return (
+              <g key={`pt-${x.period}`}>
+                <circle cx={px} cy={chartH - (x.demand / maxTrend) * chartH} r="4" fill="#1e3a5f" />
+                <circle
+                  cx={px}
+                  cy={chartH - (x.supply / maxTrend) * chartH}
+                  r="4"
+                  fill="#fff"
+                  stroke="#d97706"
+                  strokeWidth="2"
+                />
+              </g>
+            );
+          })}
           {trend.map((x, i) => (
             <text
               key={x.period}

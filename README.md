@@ -131,6 +131,10 @@ no component changes needed.
 - `.block-print-top` — a double rule echoing a Jaipur block print, on the trust cards.
 - Category tiles use a warm marigold tint instead of plain white.
 - Currency, dates and numbers format per locale (`en-IN`, `hi-IN`, `kn-IN`), so amounts read as ₹3,500.
+- **Script-correct type**: Geist covers Latin only, so Hindi and Kannada were falling back to whatever face
+  the device had. Noto Sans Devanagari and Noto Sans Kannada are loaded alongside it and the browser picks
+  the right face per glyph. Line-height is loosened for those two scripts, whose marks sit above and below
+  the baseline and get clipped by Latin-tuned leading.
 
 ## Language layer
 

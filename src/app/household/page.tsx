@@ -32,7 +32,7 @@ export default async function HouseholdHome() {
               href={`/household/post?category=${c.id}`}
               className="card flex flex-col items-center gap-1 bg-marigold-soft/40 px-2 py-3 text-center hover:border-amber-400"
             >
-              <span aria-hidden className="text-2xl">
+              <span aria-hidden className="icon-tile">
                 {c.icon}
               </span>
               <span className="text-xs font-semibold leading-tight">{t(`cat.${c.id}`)}</span>

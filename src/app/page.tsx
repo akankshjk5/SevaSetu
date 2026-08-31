@@ -81,13 +81,16 @@ export default async function LandingPage() {
 
         <dl className="mt-8 grid grid-cols-3 gap-3">
           {[
-            { k: t("landing.stat.workers"), v: num(activeWorkerCount()) },
-            { k: t("landing.stat.jobs"), v: num(completed) },
-            { k: t("landing.stat.cover"), v: t("landing.stat.coverValue") },
+            { k: t("landing.stat.workers"), v: num(activeWorkerCount()), icon: "🛡️" },
+            { k: t("landing.stat.jobs"), v: num(completed), icon: "✅" },
+            { k: t("landing.stat.cover"), v: t("landing.stat.coverValue"), icon: "🤝" },
           ].map((s) => (
             <div key={s.k} className="card p-4">
-              <dd className="text-xl font-extrabold sm:text-2xl">{s.v}</dd>
-              <dt className="text-xs text-slate-600">{s.k}</dt>
+              <span aria-hidden className="text-lg">
+                {s.icon}
+              </span>
+              <dd className="mt-1 text-xl font-extrabold text-terracotta sm:text-2xl">{s.v}</dd>
+              <dt className="text-xs leading-tight text-slate-600">{s.k}</dt>
             </div>
           ))}
         </dl>
@@ -103,7 +106,7 @@ export default async function LandingPage() {
               href={`/login?role=household&next=${encodeURIComponent(`/household/post?category=${c.id}`)}`}
               className="card flex flex-col gap-1 bg-marigold-soft/40 p-4 hover:border-amber-400"
             >
-              <span aria-hidden className="text-2xl">
+              <span aria-hidden className="icon-tile">
                 {c.icon}
               </span>
               <span className="font-semibold">{t(`cat.${c.id}`)}</span>
@@ -125,7 +128,7 @@ export default async function LandingPage() {
             { icon: "💳", t: "landing.why3.t", d: "landing.why3.d" },
           ].map((f) => (
             <div key={f.t} className="card block-print-top p-5">
-              <span aria-hidden className="text-2xl">
+              <span aria-hidden className="icon-tile">
                 {f.icon}
               </span>
               <h3 className="mt-2 font-bold">{t(f.t)}</h3>
