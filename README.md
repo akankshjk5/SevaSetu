@@ -177,6 +177,21 @@ Open the SevaSetu app to accept or decline.
   opens real WhatsApp with the text prefilled and addressed to the worker. That makes the flow demonstrable
   today without a WhatsApp Business account; swapping `notifyProvider` for a real client sends it directly.
 
+## Rapid services (hyperlocal)
+
+The landing page's rapid-services hub covers three quick tasks: a shop pickup from a named local shop
+("dukaan"), an urgent trade call-out, and an errand/parcel run. They run on the platform's own worker pool
+rather than a separate system.
+
+- Shops and pricing live in `src/lib/shops.ts`, not in the component, because the server has to look a shop up
+  when an order is placed.
+- **The fare is computed on the server** (`placeRapidOrder`) from the shop table and a clamped distance —
+  never read from the form. A price that arrives from the client is not a price; a tampered `distanceKm=999`
+  clamps to 25 km rather than billing whatever the browser asked for.
+- Placing an order assigns the nearest suitable verified worker and sends them the **same five-fact job card**
+  on WhatsApp that a household booking sends, in their language.
+- `/household/rapid/[id]` tracks placed → assigned → picked up → delivered.
+
 ## Language layer
 
 Every user-facing string — including toasts, errors, empty states, status labels and the government pages —

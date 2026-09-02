@@ -9,7 +9,7 @@ import { getProject, projectAssignments } from "./repo-phases";
 import { scoreWorker } from "./match";
 import { notifyProvider } from "./integrations/notify";
 import { ZONES } from "./seed";
-import { CATEGORY_MAP } from "./categories";
+import { siteDayRate } from "./categories";
 import type { CategoryId, Project, ProjectRequirement } from "./types";
 
 const zoneFor = (name: string) => ZONES.find((z) => z.name === name) ?? ZONES[0];
@@ -45,7 +45,7 @@ export async function createProject(formData: FormData) {
   const requirements: ProjectRequirement[] = trades.map((trade) => ({
     trade,
     count: Math.max(1, Number(formData.get(`count_${trade}`) ?? 1)),
-    dailyRate: Math.max(1, Number(formData.get(`rate_${trade}`) ?? CATEGORY_MAP[trade].typicalPrice)),
+    dailyRate: Math.max(1, Number(formData.get(`rate_${trade}`) ?? siteDayRate(trade))),
   }));
 
   const startDate = String(formData.get("startDate") || new Date().toISOString().slice(0, 10));

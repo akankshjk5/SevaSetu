@@ -10,11 +10,11 @@ export const CATEGORIES: ServiceCategory[] = [
   { id: "cook", name: "Cook", icon: "🍲", kind: "recurring", domain: "household", blurb: "Daily meals, roti-sabzi, veg or non-veg", typicalPrice: 5500, priceUnit: "per month" },
   { id: "house-helper", name: "House helper", icon: "🏠", kind: "recurring", domain: "household", blurb: "All-round help: cleaning, utensils, laundry", typicalPrice: 6000, priceUnit: "per month" },
   { id: "gardener", name: "Gardener", icon: "🌿", kind: "recurring", domain: "household", blurb: "Watering, pruning, lawn and pot care", typicalPrice: 2500, priceUnit: "per month" },
-  { id: "plumber", name: "Plumber", icon: "🔧", kind: "oneoff", domain: "both", blurb: "Leaks, taps, drainage, pipe fittings", typicalPrice: 450, priceUnit: "per visit" },
-  { id: "electrician", name: "Electrician", icon: "⚡", kind: "oneoff", domain: "both", blurb: "Wiring, switches, fans, AC & appliances", typicalPrice: 500, priceUnit: "per visit" },
-  { id: "carpenter", name: "Carpenter", icon: "🪚", kind: "oneoff", domain: "both", blurb: "Locks, hinges, furniture, modular repair", typicalPrice: 450, priceUnit: "per visit" },
-  { id: "painter", name: "Painter", icon: "🎨", kind: "oneoff", domain: "both", blurb: "Wall touch-ups, putty, primer, paint", typicalPrice: 500, priceUnit: "per visit" },
-  { id: "mason", name: "Mason", icon: "🧱", kind: "oneoff", domain: "both", blurb: "Tile repair, plaster, brickwork, concrete", typicalPrice: 650, priceUnit: "per visit" },
+  { id: "plumber", name: "Plumber", icon: "🔧", kind: "oneoff", domain: "both", blurb: "Leaks, taps, drainage, pipe fittings", typicalPrice: 450, priceUnit: "per visit" , siteDailyRate: 800 },
+  { id: "electrician", name: "Electrician", icon: "⚡", kind: "oneoff", domain: "both", blurb: "Wiring, switches, fans, AC & appliances", typicalPrice: 500, priceUnit: "per visit" , siteDailyRate: 850 },
+  { id: "carpenter", name: "Carpenter", icon: "🪚", kind: "oneoff", domain: "both", blurb: "Locks, hinges, furniture, modular repair", typicalPrice: 450, priceUnit: "per visit" , siteDailyRate: 900 },
+  { id: "painter", name: "Painter", icon: "🎨", kind: "oneoff", domain: "both", blurb: "Wall touch-ups, putty, primer, paint", typicalPrice: 500, priceUnit: "per visit" , siteDailyRate: 750 },
+  { id: "mason", name: "Mason", icon: "🧱", kind: "oneoff", domain: "both", blurb: "Tile repair, plaster, brickwork, concrete", typicalPrice: 650, priceUnit: "per visit" , siteDailyRate: 850 },
   { id: "mover", name: "Mover / packer", icon: "📦", kind: "oneoff", domain: "household", blurb: "Shifting, packing, loading help", typicalPrice: 1800, priceUnit: "per visit" },
 
   // Phase 2 site trades
@@ -42,4 +42,13 @@ export function categoryBlurbKey(id: CategoryId) {
 }
 export function priceUnitKey(unit: ServiceCategory["priceUnit"]) {
   return unit === "per month" ? "common.perMonth" : unit === "per day" ? "common.perDay" : "common.perVisit";
+}
+
+/**
+ * What a day of this trade costs on a site. Trades that serve both homes and
+ * sites carry an explicit day rate; site-only trades price by the day already.
+ */
+export function siteDayRate(id: CategoryId): number {
+  const cat = CATEGORY_MAP[id];
+  return cat.siteDailyRate ?? cat.typicalPrice;
 }

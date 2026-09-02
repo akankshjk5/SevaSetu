@@ -1,4 +1,4 @@
-import { CATEGORY_MAP } from "./categories";
+import { CATEGORY_MAP, siteDayRate } from "./categories";
 import { buildPhaseData } from "./seed-phases";
 import type {
   AggregatedStat,
@@ -6,6 +6,7 @@ import type {
   ContractorProfile,
   PartnershipInquiry,
   Project,
+  RapidOrder,
   ProjectAssignment,
   SkillAssessment,
   TrainingListing,
@@ -144,6 +145,7 @@ export type SeedData = {
   assessments: SkillAssessment[];
   certifications: Certification[];
   inquiries: PartnershipInquiry[];
+  rapidOrders: RapidOrder[];
 };
 
 export function buildSeed(): SeedData {
@@ -467,6 +469,7 @@ export function buildSeed(): SeedData {
     reviews,
     disputes,
     stats: buildStats(workers),
+    rapidOrders: [],
     ...phases,
   };
 }
@@ -501,7 +504,9 @@ function buildStats(workers: WorkerProfile[]): AggregatedStat[] {
         const gap = Math.max(0, demand - supply) / Math.max(1, demand);
         const cat = CATEGORY_MAP[trade];
         const oneoff = cat.kind === "oneoff";
-        const site = cat.kind === "site";
+        // Trades that also work sites earn at the day rate there, so their
+        // average income must not be read off the call-out price alone.
+        const site = cat.kind === "site" || cat.domain === "both";
         out.push({
           district: z.name,
           trade,
@@ -511,7 +516,7 @@ function buildStats(workers: WorkerProfile[]): AggregatedStat[] {
           verifiedWorkers: Math.round(supply * 0.78),
           filled,
           avgWage: site
-            ? cat.typicalPrice + Math.round(rnd() * 150)
+            ? siteDayRate(trade) + Math.round(rnd() * 150)
             : oneoff
               ? 450 + Math.round(rnd() * 200)
               : 3000 + Math.round(rnd() * 3500),

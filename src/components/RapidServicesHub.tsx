@@ -2,55 +2,27 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { placeRapidOrder } from "@/lib/actions-rapid";
+import {
+  DUKAAN_FEE,
+  LOCAL_SHOPS,
+  URGENT_VISIT_FEE,
+  runnerEtaMins,
+  runnerFare,
+  type ShopCategory,
+} from "@/lib/shops";
 
 type Mode = "dukaan" | "minutes" | "runner";
-
-type LocalShop = {
-  id: string;
-  name: string;
-  category: "chicken" | "medicine" | "kirana" | "hardware" | "sabzi";
-  locality: string;
-  distanceKm: number;
-  etaMins: number;
-  highlight: string;
-  verifiedShop: boolean;
-};
-
-const LOCAL_SHOPS: LocalShop[] = [
-  // Malviya Nagar
-  { id: "s1", name: "Al-Noor Fresh Poultry & Meat", category: "chicken", locality: "Malviya Nagar", distanceKm: 0.8, etaMins: 14, highlight: "Fresh daily cut, washed & hygienically packed", verifiedShop: true },
-  { id: "s2", name: "Sharma Medicos & 24/7 Chemist", category: "medicine", locality: "Malviya Nagar", distanceKm: 0.4, etaMins: 10, highlight: "All prescription medicines & baby care in stock", verifiedShop: true },
-  { id: "s3", name: "Goyal Kirana & Provision Store", category: "kirana", locality: "Malviya Nagar", distanceKm: 0.3, etaMins: 11, highlight: "Fresh chakki atta, pulses, dairy & spices", verifiedShop: true },
-  { id: "s4", name: "Jaipur Hardware & Sanitary Mart", category: "hardware", locality: "Malviya Nagar", distanceKm: 0.6, etaMins: 13, highlight: "Taps, pipes, MCB, wires & adhesives", verifiedShop: true },
-  { id: "s5", name: "Sector 4 Fresh Sabzi Mandi Cart", category: "sabzi", locality: "Malviya Nagar", distanceKm: 0.2, etaMins: 9, highlight: "Farm fresh vegetables & seasonal fruits", verifiedShop: true },
-
-  // Mansarovar
-  { id: "s6", name: "Rawat Fresh Chicken Center", category: "chicken", locality: "Mansarovar", distanceKm: 1.1, etaMins: 16, highlight: "Curry cut, boneless & fresh eggs", verifiedShop: true },
-  { id: "s7", name: "Sanjeevani Healthcare Pharmacy", category: "medicine", locality: "Mansarovar", distanceKm: 0.5, etaMins: 11, highlight: "Genuine medicines, glucose & emergency supplies", verifiedShop: true },
-  { id: "s8", name: "Aggarwal Brothers Super Store", category: "kirana", locality: "Mansarovar", distanceKm: 0.4, etaMins: 12, highlight: "Wholesale colony grocery rates", verifiedShop: true },
-  { id: "s9", name: "Shree Ram Electricals & Hardware", category: "hardware", locality: "Mansarovar", distanceKm: 0.7, etaMins: 15, highlight: "Fan capacitors, LED lights, plumbing fittings", verifiedShop: true },
-
-  // Vaishali Nagar
-  { id: "s10", name: "Delight Fresh Chicken & Eggs", category: "chicken", locality: "Vaishali Nagar", distanceKm: 0.9, etaMins: 15, highlight: "Cleaned and vacuum packed cuts", verifiedShop: true },
-  { id: "s11", name: "Apex Chemist & Surgical", category: "medicine", locality: "Vaishali Nagar", distanceKm: 0.6, etaMins: 12, highlight: "Full prescription inventory & first-aid", verifiedShop: true },
-  { id: "s12", name: "Kanha Daily Essentials & Dairy", category: "kirana", locality: "Vaishali Nagar", distanceKm: 0.5, etaMins: 12, highlight: "Organic flours, dry fruits & fresh milk", verifiedShop: true },
-
-  // C-Scheme
-  { id: "s13", name: "Ashok Nagar Fresh Poultry", category: "chicken", locality: "C-Scheme", distanceKm: 1.0, etaMins: 15, highlight: "Daily fresh chicken & mutton", verifiedShop: true },
-  { id: "s14", name: "Jaipur Central Drug Store", category: "medicine", locality: "C-Scheme", distanceKm: 0.3, etaMins: 9, highlight: "Emergency injections, oxygen & medicines", verifiedShop: true },
-  { id: "s15", name: "Kothari General Merchant", category: "kirana", locality: "C-Scheme", distanceKm: 0.4, etaMins: 11, highlight: "Gourmet spices, premium rice & oil", verifiedShop: true },
-];
 
 export function RapidServicesHub({ city }: { city: string }) {
   const [activeMode, setActiveMode] = useState<Mode>("dukaan");
 
   // Dukaan state
   const [selectedLocality, setSelectedLocality] = useState("Malviya Nagar");
-  const [shopCategory, setShopCategory] = useState<"chicken" | "medicine" | "kirana" | "hardware" | "sabzi">("chicken");
+  const [shopCategory, setShopCategory] = useState<ShopCategory>("chicken");
   const [selectedShopId, setSelectedShopId] = useState<string>("s1");
   const [customShopName, setCustomShopName] = useState("");
   const [itemNotes, setItemNotes] = useState("");
-  const [isOrdered, setIsOrdered] = useState(false);
 
   // Minutes state
   const [urgentTrade, setUrgentTrade] = useState<"plumber" | "electrician" | "carpenter">("plumber");
@@ -72,8 +44,8 @@ export function RapidServicesHub({ city }: { city: string }) {
   }, [availableShops, selectedShopId]);
 
   // Calculations
-  const runnerFare = 35 + distanceKm * 10;
-  const runnerEta = 8 + distanceKm * 2;
+  const fare = runnerFare(distanceKm);
+  const runnerEta = runnerEtaMins(distanceKm);
   const minutesEta = urgentTrade === "plumber" ? 14 : urgentTrade === "electrician" ? 12 : 18;
 
   return (
@@ -110,7 +82,6 @@ export function RapidServicesHub({ city }: { city: string }) {
                 key={tab.id}
                 onClick={() => {
                   setActiveMode(tab.id);
-                  setIsOrdered(false);
                 }}
                 className={`flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold transition cursor-pointer ${
                   activeMode === tab.id
@@ -143,7 +114,6 @@ export function RapidServicesHub({ city }: { city: string }) {
                   key={c.id}
                   onClick={() => {
                     setShopCategory(c.id);
-                    setIsOrdered(false);
                   }}
                   className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition cursor-pointer ${
                     shopCategory === c.id
@@ -289,27 +259,23 @@ export function RapidServicesHub({ city }: { city: string }) {
                 <div className="rounded-lg bg-amber-50 p-2.5 border border-amber-200 text-[10px] text-amber-950 space-y-1">
                   <p className="font-black">🤝 Why this beats corporate dark stores:</p>
                   <p>• Shopkeeper gets 100% of the sale (0% commission).</p>
-                  <p>• ₹35 delivery fee goes 100% to local rider.</p>
+                  <p>• ₹{DUKAAN_FEE} delivery fee goes 100% to local rider.</p>
                   <p>• You get genuine fresh items from your trusted shop.</p>
                 </div>
               </div>
 
-              {isOrdered ? (
-                <div className="rounded-xl bg-emerald-600 p-3 text-center text-white">
-                  <p className="text-sm font-bold">✓ Order Broadcast to Local Runner!</p>
-                  <p className="text-[10px] text-emerald-100 mt-0.5">
-                    Runner assigned in {selectedLocality}. Heading to {customShopName || activeShop?.name}.
-                  </p>
-                </div>
-              ) : (
+              <form action={placeRapidOrder}>
+                <input type="hidden" name="kind" value="dukaan" />
+                <input type="hidden" name="locality" value={selectedLocality} />
+                <input type="hidden" name="shopId" value={customShopName ? "" : (activeShop?.id ?? "")} />
+                <input type="hidden" name="customShopName" value={customShopName} />
+                <input type="hidden" name="notes" value={itemNotes} />
                 <button
-                  type="button"
-                  onClick={() => setIsOrdered(true)}
                   className="w-full rounded-xl bg-teal-700 py-2.5 text-center text-xs font-bold text-white shadow-2xs transition hover:bg-teal-800 active:scale-95 cursor-pointer"
                 >
-                  Send Runner to {customShopName ? "My Shop" : "Shop"} (₹35 Delivery) →
+                  Send Runner to {customShopName ? "My Shop" : "Shop"} (₹{DUKAAN_FEE} Delivery) →
                 </button>
-              )}
+              </form>
             </div>
           </div>
         </div>
@@ -367,7 +333,7 @@ export function RapidServicesHub({ city }: { city: string }) {
                 <div className="rounded-lg bg-white/90 p-2.5 border border-teal-100 space-y-1 text-[11px]">
                   <p className="font-bold text-slate-900 flex items-center justify-between">
                     <span>Emergency Callout Visit:</span>
-                    <span>₹299</span>
+                    <span>₹{URGENT_VISIT_FEE}</span>
                   </p>
                   <p className="text-slate-500 text-[10px]">
                     Includes inspection + minor fixes. Free ₹2L insurance covered.
@@ -375,15 +341,15 @@ export function RapidServicesHub({ city }: { city: string }) {
                 </div>
               </div>
 
-              <Link
-                href={`/login?role=household&next=${encodeURIComponent(
-                  `/household/matches?category=${urgentTrade}`
-                )}`}
-                data-tap
-                className="w-full rounded-xl bg-teal-700 py-2.5 text-center text-xs font-bold text-white shadow-2xs transition hover:bg-teal-800 active:scale-95"
-              >
-                Dispatch Express {urgentTrade === "plumber" ? "Plumber" : urgentTrade === "electrician" ? "Electrician" : "Carpenter"} Now →
-              </Link>
+              <form action={placeRapidOrder}>
+                <input type="hidden" name="kind" value="minutes" />
+                <input type="hidden" name="trade" value={urgentTrade} />
+                <button
+                  className="w-full rounded-xl bg-teal-700 py-2.5 text-center text-xs font-bold text-white shadow-2xs transition hover:bg-teal-800 active:scale-95 cursor-pointer"
+                >
+                  Dispatch Express {urgentTrade === "plumber" ? "Plumber" : urgentTrade === "electrician" ? "Electrician" : "Carpenter"} Now →
+                </button>
+              </form>
             </div>
           </div>
         </div>
@@ -410,7 +376,7 @@ export function RapidServicesHub({ city }: { city: string }) {
               <div className="space-y-1.5 rounded-xl bg-slate-50 p-3 border border-slate-200">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-800">
                   <span>Trip Distance: {distanceKm} km</span>
-                  <span className="text-teal-700 font-extrabold">₹{runnerFare} only</span>
+                  <span className="text-teal-700 font-extrabold">₹{fare} only</span>
                 </div>
                 <input
                   type="range"
@@ -440,21 +406,23 @@ export function RapidServicesHub({ city }: { city: string }) {
                 <div className="rounded-lg bg-white/90 p-2.5 border border-amber-100 space-y-1 text-[11px]">
                   <div className="flex items-center justify-between font-bold text-slate-900">
                     <span>Runner Fare:</span>
-                    <span>₹{runnerFare}</span>
+                    <span>₹{fare}</span>
                   </div>
                   <p className="text-[10px] text-emerald-800 font-semibold">
-                    ✓ 90% goes straight to the rider's bank account
+                    ✓ 90% goes straight to the rider&apos;s bank account
                   </p>
                 </div>
               </div>
 
-              <Link
-                href="/login?role=household&next=/household/post?category=mover"
-                data-tap
-                className="w-full rounded-xl bg-slate-900 py-2.5 text-center text-xs font-bold text-white shadow-2xs transition hover:bg-slate-800 active:scale-95"
-              >
-                Book Errand / Parcel Runner (₹{runnerFare}) →
-              </Link>
+              <form action={placeRapidOrder}>
+                <input type="hidden" name="kind" value="runner" />
+                <input type="hidden" name="distanceKm" value={distanceKm} />
+                <button
+                  className="w-full rounded-xl bg-slate-900 py-2.5 text-center text-xs font-bold text-white shadow-2xs transition hover:bg-slate-800 active:scale-95 cursor-pointer"
+                >
+                  Book Errand / Parcel Runner (₹{fare}) →
+                </button>
+              </form>
             </div>
           </div>
         </div>

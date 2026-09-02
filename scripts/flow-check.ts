@@ -17,6 +17,8 @@ import { districtRollup, tradeRollup, verificationQueue, workerEarnings, workerR
 import { CATEGORIES } from "../src/lib/categories";
 import { messagesTo } from "../src/lib/integrations/notify";
 import { buildJobMessage, whatsappLink } from "../src/lib/messages";
+import { DUKAAN_FEE, URGENT_VISIT_FEE, getShop, runnerFare, shopsIn } from "../src/lib/shops";
+import { CATEGORY_MAP, siteDayRate as catSiteDayRate } from "../src/lib/categories";
 import {
   contractorProjects,
   impactSummary,
@@ -222,6 +224,22 @@ async function main() {
     link.startsWith("https://wa.me/91") && link.includes("hello%20ji"),
     link.slice(0, 42),
   );
+
+  // ------------------------------------------- rapid services pricing
+  check("shop lookup resolves a seeded shop", getShop("s1")?.name.includes("Al-Noor") === true);
+  check("shops fall back to the city when a locality has none", shopsIn("Jagatpura", "sabzi").length > 0);
+  check("runner fare rises with distance", runnerFare(1) < runnerFare(5), `${runnerFare(1)} -> ${runnerFare(5)}`);
+  check("runner fare is clamped at the far end", runnerFare(999) === runnerFare(25));
+  check("flat fees are defined once", DUKAAN_FEE === 35 && URGENT_VISIT_FEE === 299);
+
+  // A trade worked on a site earns a day rate, not the household call-out fee.
+  for (const trade of ["carpenter", "painter", "mason", "plumber", "electrician"] as const) {
+    check(
+      `${trade} site day rate exceeds its call-out fee`,
+      catSiteDayRate(trade) > CATEGORY_MAP[trade].typicalPrice,
+      `${CATEGORY_MAP[trade].typicalPrice}/visit vs ${catSiteDayRate(trade)}/day`,
+    );
+  }
 
   // ------------------------------------------ Phase 2: contractor journey
   const contractor = data.contractors[0];

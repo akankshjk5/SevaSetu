@@ -73,6 +73,26 @@ const en = {
   "wa.demoNote": "This build sends through a mock provider. The button opens WhatsApp with the same message ready to send.",
   "wa.yourCard": "This job was sent to your WhatsApp",
 
+  // -------------------------------------------------------- rapid services
+  "rapid.newTask": "New quick task",
+  "rapid.dukaan": "Shop pickup",
+  "rapid.minutes": "Urgent repair",
+  "rapid.runner": "Errand / parcel run",
+  "rapid.withinMins": "within {n} minutes",
+  "rapid.title": "Quick task placed",
+  "rapid.assigned": "{name} is on the way",
+  "rapid.findingRunner": "Finding someone nearby",
+  "rapid.fee": "Fee",
+  "rapid.eta": "Reaches you in",
+  "rapid.shop": "Shop",
+  "rapid.status.placed": "Placed",
+  "rapid.status.assigned": "Runner assigned",
+  "rapid.status.picked-up": "Picked up",
+  "rapid.status.delivered": "Delivered",
+  "rapid.status.cancelled": "Cancelled",
+  "rapid.yourOrders": "Quick tasks",
+  "rapid.noOrders": "No quick tasks yet",
+
   // ---------------------------------------------------------------- phases
   "phase.live": "Live",
   "phase.beta": "Beta",

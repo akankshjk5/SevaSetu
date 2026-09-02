@@ -39,6 +39,12 @@ export type ServiceCategory = {
   priceUnit: "per month" | "per visit" | "per day";
   /** Household categories, site categories, or trades serving both. */
   domain: "household" | "site" | "both";
+  /**
+   * Day rate for a trade that also works on sites. A carpenter charges per
+   * visit for a household repair and per day on a project — one number cannot
+   * mean both, and paying a site day at the call-out rate underpays by half.
+   */
+  siteDailyRate?: number;
 };
 
 export type LatLng = { lat: number; lng: number };
@@ -340,4 +346,40 @@ export type PartnershipInquiry = {
   message: string;
   createdAt: string;
   status: "new" | "contacted";
+};
+
+// --------------------------------------------- Rapid services (hyperlocal) --
+
+export type RapidOrderKind = "dukaan" | "minutes" | "runner";
+
+export type RapidOrderStatus = "placed" | "assigned" | "picked-up" | "delivered" | "cancelled";
+
+/**
+ * A hyperlocal order: a shop pickup, an urgent trade call-out, or an errand.
+ * It reuses the platform's worker pool and notification path rather than
+ * running as a separate system — the rider is a verified worker, and the job
+ * card that reaches them is the same one a household booking sends.
+ */
+export type RapidOrder = {
+  id: string;
+  kind: RapidOrderKind;
+  householdId: string;
+  /** Assigned runner or tradesperson, once one is found. */
+  workerId: string | null;
+  locality: string;
+  addressLine: string;
+  /** Dukaan orders: the shop being sent to. */
+  shopId?: string;
+  shopName?: string;
+  /** Minutes orders: which trade was called. */
+  trade?: CategoryId;
+  /** Runner orders: the distance the fare was computed from. */
+  distanceKm?: number;
+  notes?: string;
+  /** Computed on the server — never taken from the client. */
+  fee: number;
+  etaMins: number;
+  status: RapidOrderStatus;
+  createdAt: string;
+  notifiedAt?: string;
 };
