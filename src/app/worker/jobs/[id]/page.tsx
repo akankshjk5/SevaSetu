@@ -17,7 +17,8 @@ const REASONS = ["payment", "notHome", "different", "behaviour"] as const;
 
 export default async function WorkerJobDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const worker = (await currentWorker())!;
+  const worker = await currentWorker();
+  if (!worker) return null;
   const b = getBooking(id);
   if (!b || b.workerId !== worker.id) notFound();
 

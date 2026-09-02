@@ -167,7 +167,7 @@ export function buildSeed(): SeedData {
       id: wid,
       userId: uid,
       name: w.name,
-      photo: "",
+      photo: ["w1", "w2", "w3", "w4", "w22"].includes(wid) ? `/workers/${wid}.jpg` : "",
       phone,
       locality: w.locality,
       district: w.locality,

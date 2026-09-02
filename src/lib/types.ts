@@ -37,8 +37,8 @@ export type ServiceCategory = {
   /** indicative monthly wage (recurring) or per-visit price (one-off), in ₹ */
   typicalPrice: number;
   priceUnit: "per month" | "per visit" | "per day";
-  /** Household categories are hidden from the contractor project builder. */
-  domain: "household" | "site";
+  /** Household categories, site categories, or trades serving both. */
+  domain: "household" | "site" | "both";
 };
 
 export type LatLng = { lat: number; lng: number };

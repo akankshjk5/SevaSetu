@@ -515,7 +515,7 @@ const kn: Partial<Record<keyof typeof en, string>> = {
   "sp.training": "ನಿಮಗೆ ಸಹಾಯವಾಗುವ ಕೋರ್ಸ್‌ಗಳು",
   "sp.noTraining": "ನಿಮ್ಮ ಕೌಶಲಕ್ಕೆ ಸದ್ಯ ಕೋರ್ಸ್ ಇಲ್ಲ.",
   "sp.quiz.title": "{trade} ಕೌಶಲ ಪರೀಕ್ಷೆ",
-  "sp.quiz.sub": "{n} ಸಣ್ಣ ಪ್ರಶ್ನೆಗಳು. ಪಾಸ್ ಆಗದಿದ್ದರೆ ಮತ್ತೆ ಬರೆಯಬಹುದು.",
+  "sp.quiz.sub": "ಸುಲಭ ಪ್ರಶ್ನೆಗಳು. ಪಾಸ್ ಆಗದಿದ್ದರೆ ಮತ್ತೆ ಬರೆಯಬಹುದು.",
   "sp.quiz.submit": "ಪರೀಕ್ಷೆ ಮುಗಿಸಿ",
   "sp.quiz.result": "ನಿಮಗೆ {score}% ಅಂಕ",
   "sp.quiz.passNote": "ಅಭಿನಂದನೆ — ಈಗ ನಿಮ್ಮ ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ “ಪ್ರಮಾಣೀಕೃತ” ಬ್ಯಾಡ್ಜ್ ಇದೆ.",

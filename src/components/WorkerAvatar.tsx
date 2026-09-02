@@ -73,7 +73,9 @@ export function WorkerAvatar({
         alt={name}
         width={size}
         height={size}
-        className={`shrink-0 rounded-full object-cover ${ring ? "ring-2 ring-amber-300" : ""}`}
+        className={`shrink-0 rounded-full object-cover shadow-sm ring-1 ring-black/10 ${
+          ring ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-white" : ""
+        }`}
         style={{ width: size, height: size }}
       />
     );
@@ -92,7 +94,9 @@ export function WorkerAvatar({
 
   return (
     <span
-      className={`inline-block shrink-0 overflow-hidden rounded-full ${ring ? "ring-2 ring-amber-300" : ""}`}
+      className={`inline-block shrink-0 overflow-hidden rounded-full shadow-sm ring-1 ring-black/5 ${
+        ring ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-white" : ""
+      }`}
       style={{ width: size, height: size }}
     >
       <svg viewBox="0 0 64 64" width={size} height={size} role="img" aria-label={name}>

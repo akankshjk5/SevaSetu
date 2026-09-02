@@ -6,7 +6,8 @@ import { PhaseBanner } from "@/components/PhaseBadge";
 import { NewProjectForm } from "./NewProjectForm";
 
 export default async function NewProjectPage() {
-  const contractor = (await currentContractor())!;
+  const contractor = await currentContractor();
+  if (!contractor) return null;
   const { t } = await getI18n();
 
   return (

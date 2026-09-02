@@ -10,7 +10,8 @@ import { PhaseBanner } from "@/components/PhaseBadge";
 
 export default async function TrainingHome({ searchParams }: { searchParams: Promise<{ published?: string }> }) {
   const sp = await searchParams;
-  const provider = (await currentProvider())!;
+  const provider = await currentProvider();
+  if (!provider) return null;
   const { t, money } = await getI18n();
   const listings = providerListings(provider.id);
 

@@ -15,8 +15,10 @@ const STATUS_CLASS: Record<VerificationStepStatus, string> = {
 const STEPS = ["govId", "policeCheck", "skillCheck", "insurance"] as const;
 
 export default async function VerificationPage() {
-  const worker = (await currentWorker())!;
-  const rec = verificationFor(worker.id)!;
+  const worker = await currentWorker();
+  if (!worker) return null;
+  const rec = verificationFor(worker.id);
+  if (!rec) return null;
   const { t, money } = await getI18n();
   const done = STEPS.filter((s) => rec[s].status === "complete").length;
 

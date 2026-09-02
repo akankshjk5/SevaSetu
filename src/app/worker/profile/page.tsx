@@ -8,7 +8,8 @@ import { getI18n } from "@/i18n/server";
 import { WorkerAvatar } from "@/components/WorkerAvatar";
 
 export default async function WorkerProfilePage() {
-  const worker = (await currentWorker())!;
+  const worker = await currentWorker();
+  if (!worker) return null;
   const { t, money } = await getI18n();
 
   return (

@@ -16,7 +16,8 @@ const SORTS = ["match", "price", "rating", "distance"] as const;
 
 export default async function MatchesPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const household = (await currentHousehold())!;
+  const household = await currentHousehold();
+  if (!household) return null;
   const { t, money } = await getI18n();
 
   const category = (sp.category ?? "cleaner") as CategoryId;

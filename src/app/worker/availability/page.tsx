@@ -5,7 +5,8 @@ import { BackLink, DAY_INDEXES, daysLabel } from "@/components/ui";
 
 export default async function AvailabilityPage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
   const sp = await searchParams;
-  const worker = (await currentWorker())!;
+  const worker = await currentWorker();
+  if (!worker) return null;
   const { t } = await getI18n();
 
   return (

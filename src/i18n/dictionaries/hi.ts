@@ -515,7 +515,7 @@ const hi: Partial<Record<keyof typeof en, string>> = {
   "sp.training": "आपके काम आने वाले कोर्स",
   "sp.noTraining": "आपके हुनर के लिए अभी कोई कोर्स नहीं।",
   "sp.quiz.title": "{trade} हुनर जाँच",
-  "sp.quiz.sub": "{n} छोटे सवाल। पास न हों तो फिर से दे सकते हैं।",
+  "sp.quiz.sub": "आसान सवाल। पास न हों तो फिर से दे सकते हैं।",
   "sp.quiz.submit": "जाँच पूरी करें",
   "sp.quiz.result": "आपके {score}% अंक",
   "sp.quiz.passNote": "बहुत बढ़िया — अब आपकी प्रोफ़ाइल पर “प्रमाणित” बैज है।",

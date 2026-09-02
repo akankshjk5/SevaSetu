@@ -10,7 +10,8 @@ const PARTS = [
 ] as const;
 
 export default async function WorkerReviewsPage() {
-  const worker = (await currentWorker())!;
+  const worker = await currentWorker();
+  if (!worker) return null;
   const { t, date: fmtDate } = await getI18n();
   const reviews = workerReviews(worker.id);
   const avg = (key: "quality" | "punctuality" | "professionalism") =>

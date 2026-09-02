@@ -9,7 +9,8 @@ import { SkillQuiz } from "./SkillQuiz";
 
 export default async function PassportPage({ searchParams }: { searchParams: Promise<{ score?: string }> }) {
   const sp = await searchParams;
-  const worker = (await currentWorker())!;
+  const worker = await currentWorker();
+  if (!worker) return null;
   const { t, money, date: fmtDate } = await getI18n();
 
   const passport = skillPassport(worker);

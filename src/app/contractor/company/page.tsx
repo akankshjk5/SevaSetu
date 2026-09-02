@@ -7,7 +7,8 @@ import { PhaseBadge } from "@/components/PhaseBadge";
 
 export default async function CompanyPage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
   const sp = await searchParams;
-  const contractor = (await currentContractor())!;
+  const contractor = await currentContractor();
+  if (!contractor) return null;
   const { t } = await getI18n();
 
   return (

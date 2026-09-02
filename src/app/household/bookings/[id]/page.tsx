@@ -43,7 +43,8 @@ export default async function BookingDetail({
 }) {
   const { id } = await params;
   const sp = await searchParams;
-  const household = (await currentHousehold())!;
+  const household = await currentHousehold();
+  if (!household) return null;
   const booking = getBooking(id);
   if (!booking || booking.householdId !== household.id) notFound();
 

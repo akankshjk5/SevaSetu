@@ -9,7 +9,8 @@ import { PhaseBadge } from "@/components/PhaseBadge";
 import { CATEGORY_MAP } from "@/lib/categories";
 
 export default async function WorkerJobsPage() {
-  const worker = (await currentWorker())!;
+  const worker = await currentWorker();
+  if (!worker) return null;
   const { t, money, shortDate } = await getI18n();
 
   const all = workerBookings(worker.id);

@@ -4,13 +4,15 @@ import { getHousehold, verificationFor, workerBookings, workerEarnings, workerRe
 import { workerAssignments, getProject } from "@/lib/repo-phases";
 import { respondToJob, setBookingStatus } from "@/lib/actions";
 import { getI18n } from "@/i18n/server";
-import { EmptyState, Section, StatusPill, Stars, daysLabel } from "@/components/ui";
+import { EmptyState, Section, StatusPill, Stars, daysLabel, VerifiedBadge } from "@/components/ui";
 import { PhaseBadge } from "@/components/PhaseBadge";
+import { WorkerAvatar } from "@/components/WorkerAvatar";
 
 const STEPS = ["govId", "policeCheck", "skillCheck", "insurance"] as const;
 
 export default async function WorkerHome() {
-  const worker = (await currentWorker())!;
+  const worker = await currentWorker();
+  if (!worker) return null;
   const { t, money, shortDate } = await getI18n();
 
   const rec = verificationFor(worker.id);
@@ -25,9 +27,22 @@ export default async function WorkerHome() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold">{t("wk.hello", { name: worker.name.split(" ")[0] })}</h1>
-        <p className="text-sm text-slate-600">{worker.verified ? t("wk.verify.done.body") : t("wk.verify.sub")}</p>
+      <div className="card flex items-center gap-4 p-4 border-amber-900/10 bg-white shadow-xs">
+        <WorkerAvatar id={worker.id} name={worker.name} trade={worker.categories[0]} photo={worker.photo} size={64} ring />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 truncate">
+              {t("wk.hello", { name: worker.name.split(" ")[0] })}
+            </h1>
+            {worker.verified && <VerifiedBadge t={t} />}
+          </div>
+          <p className="mt-0.5 text-xs text-slate-600 truncate">
+            {worker.locality} · {worker.categories.map((c) => t(`cat.${c}`)).join(", ")}
+          </p>
+          <p className="mt-1 text-xs font-semibold text-teal-800">
+            {worker.verified ? t("wk.verify.done.body") : t("wk.verify.sub")}
+          </p>
+        </div>
       </div>
 
       {!worker.verified && (

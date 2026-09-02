@@ -6,7 +6,8 @@ import { EmptyState, Section, StatusPill } from "@/components/ui";
 import { WorkerAvatar } from "@/components/WorkerAvatar";
 
 export default async function BookingsPage() {
-  const household = (await currentHousehold())!;
+  const household = await currentHousehold();
+  if (!household) return null;
   const { t, money, shortDate } = await getI18n();
 
   const all = householdBookings(household.id);

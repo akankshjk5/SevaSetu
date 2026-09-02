@@ -8,7 +8,8 @@ import { EmptyState, Section, StatusPill } from "@/components/ui";
 import { WorkerAvatar } from "@/components/WorkerAvatar";
 
 export default async function HouseholdHome() {
-  const household = (await currentHousehold())!;
+  const household = await currentHousehold();
+  if (!household) return null;
   const { t, money, shortDate } = await getI18n();
 
   const bookings = householdBookings(household.id);
@@ -18,24 +19,45 @@ export default async function HouseholdHome() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold">{t("hh.hello", { name: household.name.split(" ")[0] })}</h1>
-        <p className="text-sm text-slate-600">{household.addressLine}</p>
+      <div className="card flex items-center justify-between p-4.5 border-amber-900/10 bg-gradient-to-r from-teal-900 to-slate-900 text-white shadow-sm">
+        <div>
+          <span className="inline-flex items-center gap-1 rounded-full bg-teal-500/20 px-2.5 py-0.5 text-[11px] font-bold text-teal-300 ring-1 ring-teal-400/30">
+            📍 {household.locality || "Jaipur"}
+          </span>
+          <h1 className="mt-1.5 text-xl sm:text-2xl font-black tracking-tight text-white">
+            {t("hh.hello", { name: household.name.split(" ")[0] })}
+          </h1>
+          <p className="text-xs text-slate-300 truncate max-w-sm">{household.addressLine}</p>
+        </div>
+        <Link
+          href="/household/post"
+          data-tap
+          className="rounded-xl bg-teal-500 px-3.5 py-2 text-xs font-black text-slate-950 shadow-sm transition hover:bg-teal-400 active:scale-95 shrink-0"
+        >
+          + Book a helper
+        </Link>
       </div>
 
       <Section title={t("hh.needToday")}>
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           {HOUSEHOLD_CATEGORIES.map((c) => (
             <Link
               key={c.id}
               data-tap
               href={`/household/post?category=${c.id}`}
-              className="card flex flex-col items-center gap-1 bg-marigold-soft/40 px-2 py-3 text-center hover:border-amber-400"
+              className="card group flex items-center gap-3 p-3.5 transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-md"
             >
-              <span aria-hidden className="icon-tile">
+              <span aria-hidden className="icon-tile group-hover:scale-110 transition">
                 {c.icon}
               </span>
-              <span className="text-xs font-semibold leading-tight">{t(`cat.${c.id}`)}</span>
+              <div className="min-w-0 flex-1">
+                <span className="block text-xs sm:text-sm font-bold text-slate-900 truncate group-hover:text-teal-800 transition">
+                  {t(`cat.${c.id}`)}
+                </span>
+                <span className="block text-[11px] text-slate-500 truncate">
+                  {t(`cat.${c.id}.blurb`)}
+                </span>
+              </div>
             </Link>
           ))}
         </div>

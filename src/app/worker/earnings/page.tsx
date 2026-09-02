@@ -5,7 +5,8 @@ import { getI18n } from "@/i18n/server";
 const STEPS = ["step1", "step2", "step3"] as const;
 
 export default async function EarningsPage() {
-  const worker = (await currentWorker())!;
+  const worker = await currentWorker();
+  if (!worker) return null;
   const { t, money, shortDate } = await getI18n();
   const e = workerEarnings(worker.id);
 

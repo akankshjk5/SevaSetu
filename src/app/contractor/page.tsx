@@ -13,7 +13,8 @@ const STATUS_CLASS: Record<string, string> = {
 };
 
 export default async function ContractorHome() {
-  const contractor = (await currentContractor())!;
+  const contractor = await currentContractor();
+  if (!contractor) return null;
   const { t, money, shortDate } = await getI18n();
   const projects = contractorProjects(contractor.id);
 

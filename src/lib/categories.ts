@@ -10,20 +10,20 @@ export const CATEGORIES: ServiceCategory[] = [
   { id: "cook", name: "Cook", icon: "🍲", kind: "recurring", domain: "household", blurb: "Daily meals, roti-sabzi, veg or non-veg", typicalPrice: 5500, priceUnit: "per month" },
   { id: "house-helper", name: "House helper", icon: "🏠", kind: "recurring", domain: "household", blurb: "All-round help: cleaning, utensils, laundry", typicalPrice: 6000, priceUnit: "per month" },
   { id: "gardener", name: "Gardener", icon: "🌿", kind: "recurring", domain: "household", blurb: "Watering, pruning, lawn and pot care", typicalPrice: 2500, priceUnit: "per month" },
-  { id: "plumber", name: "Plumber", icon: "🔧", kind: "oneoff", domain: "household", blurb: "Leaks, taps, drainage, fittings", typicalPrice: 450, priceUnit: "per visit" },
-  { id: "electrician", name: "Electrician", icon: "💡", kind: "oneoff", domain: "household", blurb: "Wiring, switches, fans, appliances", typicalPrice: 500, priceUnit: "per visit" },
+  { id: "plumber", name: "Plumber", icon: "🔧", kind: "oneoff", domain: "both", blurb: "Leaks, taps, drainage, pipe fittings", typicalPrice: 450, priceUnit: "per visit" },
+  { id: "electrician", name: "Electrician", icon: "⚡", kind: "oneoff", domain: "both", blurb: "Wiring, switches, fans, AC & appliances", typicalPrice: 500, priceUnit: "per visit" },
+  { id: "carpenter", name: "Carpenter", icon: "🪚", kind: "oneoff", domain: "both", blurb: "Locks, hinges, furniture, modular repair", typicalPrice: 450, priceUnit: "per visit" },
+  { id: "painter", name: "Painter", icon: "🎨", kind: "oneoff", domain: "both", blurb: "Wall touch-ups, putty, primer, paint", typicalPrice: 500, priceUnit: "per visit" },
+  { id: "mason", name: "Mason", icon: "🧱", kind: "oneoff", domain: "both", blurb: "Tile repair, plaster, brickwork, concrete", typicalPrice: 650, priceUnit: "per visit" },
   { id: "mover", name: "Mover / packer", icon: "📦", kind: "oneoff", domain: "household", blurb: "Shifting, packing, loading help", typicalPrice: 1800, priceUnit: "per visit" },
 
-  // Phase 2 site trades — same engine, different domain.
-  { id: "mason", name: "Mason", icon: "🧱", kind: "site", domain: "site", blurb: "Brickwork, plaster, concrete", typicalPrice: 850, priceUnit: "per day" },
-  { id: "carpenter", name: "Carpenter", icon: "🪚", kind: "site", domain: "site", blurb: "Doors, windows, shuttering, furniture", typicalPrice: 900, priceUnit: "per day" },
-  { id: "painter", name: "Painter", icon: "🎨", kind: "site", domain: "site", blurb: "Wall putty, primer, paint", typicalPrice: 750, priceUnit: "per day" },
+  // Phase 2 site trades
   { id: "bar-bender", name: "Bar bender", icon: "🔩", kind: "site", domain: "site", blurb: "Steel cutting, bending, tying", typicalPrice: 800, priceUnit: "per day" },
-  { id: "helper", name: "Site helper", icon: "👷", kind: "site", domain: "site", blurb: "General site labour", typicalPrice: 550, priceUnit: "per day" },
+  { id: "helper", name: "Site helper", icon: "👷", kind: "site", domain: "site", blurb: "General site labour & mixing", typicalPrice: 550, priceUnit: "per day" },
 ];
 
-export const HOUSEHOLD_CATEGORIES = CATEGORIES.filter((c) => c.domain === "household");
-export const SITE_CATEGORIES = CATEGORIES.filter((c) => c.domain === "site");
+export const HOUSEHOLD_CATEGORIES = CATEGORIES.filter((c) => c.domain === "household" || c.domain === "both");
+export const SITE_CATEGORIES = CATEGORIES.filter((c) => c.domain === "site" || c.domain === "both");
 
 export const CATEGORY_MAP: Record<CategoryId, ServiceCategory> = Object.fromEntries(
   CATEGORIES.map((c) => [c.id, c]),

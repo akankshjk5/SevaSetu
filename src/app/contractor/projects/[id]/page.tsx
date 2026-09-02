@@ -18,7 +18,8 @@ const STATUS_CLASS: Record<string, string> = {
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const contractor = (await currentContractor())!;
+  const contractor = await currentContractor();
+  if (!contractor) return null;
   const project = getProject(id);
   if (!project || project.contractorId !== contractor.id) notFound();
 

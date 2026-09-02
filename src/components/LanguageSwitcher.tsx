@@ -19,14 +19,14 @@ export function LanguageSwitcher({ locale, tone = "light" }: { locale: Locale; t
           aria-label={LOCALE_META[l].label}
           aria-current={l === locale}
           lang={l}
-          className={`min-h-11 min-w-11 rounded-full px-2.5 py-1 text-xs font-bold transition ${
+          className={`h-7 w-7 sm:h-8 sm:w-8 rounded-full text-[11px] sm:text-xs font-bold transition flex items-center justify-center shrink-0 cursor-pointer ${
             l === locale
               ? tone === "dark"
-                ? "bg-white text-slate-900"
-                : "bg-brand text-white"
+                ? "bg-white text-slate-900 shadow-2xs"
+                : "bg-brand text-white shadow-2xs"
               : tone === "dark"
-                ? "text-white/80 ring-1 ring-white/30"
-                : "text-slate-600 ring-1 ring-slate-300"
+                ? "text-white/80 ring-1 ring-white/20 hover:bg-white/10"
+                : "text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
           }`}
         >
           {LOCALE_META[l].short}

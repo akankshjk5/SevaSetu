@@ -20,7 +20,8 @@ function monthGrid(intl: string) {
 }
 
 export default async function TeamPage() {
-  const household = (await currentHousehold())!;
+  const household = await currentHousehold();
+  if (!household) return null;
   const { t, money, locale } = await getI18n();
 
   const team = householdBookings(household.id).filter(

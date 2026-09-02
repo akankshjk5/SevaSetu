@@ -6,7 +6,8 @@ import { PostNeedForm } from "./PostNeedForm";
 
 export default async function PostNeedPage({ searchParams }: { searchParams: Promise<{ category?: string }> }) {
   const sp = await searchParams;
-  const household = (await currentHousehold())!;
+  const household = await currentHousehold();
+  if (!household) return null;
   const { t } = await getI18n();
 
   return (
