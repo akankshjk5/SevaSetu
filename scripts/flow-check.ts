@@ -3,6 +3,7 @@
  * Run with: npm run check:flows
  */
 import { db, resetDb } from "../src/lib/store";
+import { ZONES } from "../src/lib/seed";
 import { scoreWorker } from "../src/lib/match";
 import {
   addReview,
@@ -15,6 +16,7 @@ import {
 } from "../src/lib/services";
 import { districtRollup, tradeRollup, verificationQueue, workerEarnings, workerReviews } from "../src/lib/repo";
 import { CATEGORIES } from "../src/lib/categories";
+import { BUILD_PHASES, buildChain, planBuild } from "../src/lib/construction";
 import { messagesTo } from "../src/lib/integrations/notify";
 import { buildJobMessage, whatsappLink } from "../src/lib/messages";
 import { DUKAAN_FEE, URGENT_VISIT_FEE, getShop, runnerFare, shopsIn } from "../src/lib/shops";
@@ -167,7 +169,7 @@ async function main() {
   const trades = tradeRollup("2026-08", "all");
   const districts = districtRollup("2026-08", "all");
   check("trade rollup covers every listed trade", trades.length === CATEGORIES.length, `${trades.length}/${CATEGORIES.length}`);
-  check("district rollup covers all six zones", districts.length === 6);
+  check("district rollup covers every zone", districts.length === ZONES.length, `${districts.length}/${ZONES.length}`);
   check("fill rate is a sane percentage", districts.every((d) => d.fillRate >= 0 && d.fillRate <= 100));
   check(
     "aggregates carry no personal identifiers",
@@ -241,6 +243,45 @@ async function main() {
     );
   }
 
+  // ------------------------------- the construction chain (differentiator)
+  const chain = buildChain();
+  check("the build chain covers the whole workforce", chain.length >= 15, `${chain.length} trades`);
+  check(
+    "every phase trade is a real category",
+    chain.every((trade) => CATEGORIES.some((c) => c.id === trade)),
+  );
+  check(
+    "phases are numbered in build order",
+    BUILD_PHASES.every((p, i) => p.step === i + 1),
+  );
+  check(
+    "design comes before foundation, and finishing after structure",
+    BUILD_PHASES[0].id === "design" &&
+      BUILD_PHASES.findIndex((p) => p.id === "foundation") < BUILD_PHASES.findIndex((p) => p.id === "structure") &&
+      BUILD_PHASES.findIndex((p) => p.id === "structure") < BUILD_PHASES.findIndex((p) => p.id === "finishing"),
+  );
+
+  const small = planBuild(1000);
+  const large = planBuild(3000);
+  check("a bigger house needs more people", large.totalPeople > small.totalPeople, `${small.totalPeople} -> ${large.totalPeople}`);
+  check("a bigger house costs more", large.totalCost > small.totalCost, `₹${small.totalCost} -> ₹${large.totalCost}`);
+  check("a bigger house takes longer", large.totalDays > small.totalDays, `${small.totalDays} -> ${large.totalDays} days`);
+  check("plot size is clamped to something buildable", planBuild(5).sqft === 250 && planBuild(999999).sqft === 20000);
+
+  const essentialOnly = planBuild(1500, false);
+  check("dropping optional trades costs less", essentialOnly.totalCost < planBuild(1500).totalCost);
+  check(
+    "essential roles survive the optional filter",
+    essentialOnly.phases.every((p) => p.roles.every((r) => r.essential)),
+  );
+
+  // The seed must actually cover the chain, or the plan is a brochure.
+  check("every trade in the chain has a verified worker", planBuild(1500).gaps.length === 0, `gaps: ${planBuild(1500).gaps.join(", ") || "none"}`);
+
+  // A professional is a fee, not a roster line.
+  const design = planBuild(2000).phases.find((p) => p.phase.id === "design")!;
+  check("professionals are priced per project, not per day", design.roles.every((r) => r.days === 0 && r.headcount === 1));
+
   // ------------------------------------------ Phase 2: contractor journey
   const contractor = data.contractors[0];
   const projects = contractorProjects(contractor.id);
@@ -288,7 +329,7 @@ async function main() {
     impact.workersVerified > 0 && impact.jobsCompleted > 0 && impact.incomeDisbursed > 0,
     `${impact.workersVerified} workers · ₹${impact.incomeDisbursed}`,
   );
-  check("impact covers every district", impact.districts === 6, `${impact.districts}`);
+  check("impact covers every district", impact.districts === ZONES.length, `${impact.districts}/${ZONES.length}`);
   check("partnership inbox is readable", data.inquiries.length > 0, `${data.inquiries.length} inquiries`);
 
   console.log(failures === 0 ? "\nAll flow checks passed." : `\n${failures} check(s) failed.`);

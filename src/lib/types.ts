@@ -25,7 +25,23 @@ export type CategoryId =
   | "carpenter"
   | "painter"
   | "helper"
-  | "bar-bender";
+  | "bar-bender"
+  // Skilled trades and finishing
+  | "tile-worker"
+  | "welder"
+  | "ac-technician"
+  | "interior"
+  | "landscaper"
+  // Machinery — the operator and the machine are hired together
+  | "jcb-operator"
+  | "crane-operator"
+  | "transport"
+  // Professionals who lead or certify the work
+  | "contractor-civil"
+  | "supervisor"
+  | "civil-engineer"
+  | "architect"
+  | "surveyor";
 
 export type ServiceCategory = {
   id: CategoryId;
@@ -36,9 +52,15 @@ export type ServiceCategory = {
   blurb: string;
   /** indicative monthly wage (recurring) or per-visit price (one-off), in ₹ */
   typicalPrice: number;
-  priceUnit: "per month" | "per visit" | "per day";
+  priceUnit: "per month" | "per visit" | "per day" | "per project";
   /** Household categories, site categories, or trades serving both. */
   domain: "household" | "site" | "both";
+  /**
+   * What kind of hire this is, which decides how it is presented and priced:
+   * a professional is engaged for a project, a trade is hired by the day or
+   * the visit, an operator arrives with a machine, support is general labour.
+   */
+  tier: "professional" | "trade" | "operator" | "support" | "household";
   /**
    * Day rate for a trade that also works on sites. A carpenter charges per
    * visit for a household repair and per day on a project — one number cannot

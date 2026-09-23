@@ -32,6 +32,19 @@ const HEADGEAR: Partial<Record<CategoryId, HeadGear>> = {
   plumber: "cap",
   electrician: "cap",
   mover: "cap",
+  "tile-worker": "cap",
+  welder: "helmet",
+  "ac-technician": "cap",
+  landscaper: "sunhat",
+  "jcb-operator": "helmet",
+  "crane-operator": "helmet",
+  transport: "cap",
+  "contractor-civil": "helmet",
+  supervisor: "helmet",
+  "civil-engineer": "helmet",
+  architect: "none",
+  surveyor: "sunhat",
+  interior: "none",
 };
 
 /**

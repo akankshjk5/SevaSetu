@@ -1,4 +1,4 @@
-import { CATEGORY_MAP, siteDayRate } from "./categories";
+import { CATEGORIES, CATEGORY_MAP, siteDayRate } from "./categories";
 import { buildPhaseData } from "./seed-phases";
 import type {
   AggregatedStat,
@@ -31,6 +31,7 @@ export const ZONES = [
   { name: "C-Scheme", lat: 26.9057, lng: 75.7973 },
   { name: "Jagatpura", lat: 26.8129, lng: 75.8503 },
   { name: "Vidhyadhar Nagar", lat: 26.9506, lng: 75.7756 },
+  { name: "Vishwakarma", lat: 26.9822, lng: 75.7561 },
 ];
 
 const zone = (n: string) => ZONES.find((z) => z.name === n)!;
@@ -84,6 +85,25 @@ const WORKER_SEEDS: WorkerSeed[] = [
   { name: "Sohan Lal", locality: "Jagatpura", cats: ["bar-bender"], exp: 12, langs: ["Hindi"], wage: 850, rating: 4.5, jobs: 67, days: [1, 2, 3, 4, 5, 6], from: "07:00", to: "17:00", bio: "Steel cutting, bending and tying as per drawings.", verified: true },
   { name: "Kailash Regar", locality: "Mansarovar", cats: ["helper"], exp: 4, langs: ["Hindi"], wage: 580, rating: 4.2, jobs: 53, days: [1, 2, 3, 4, 5, 6], from: "08:00", to: "18:00", bio: "Site helper — mixing, loading, cleaning. Hard working.", verified: true },
   { name: "Pappu Meena", locality: "Vidhyadhar Nagar", cats: ["helper", "painter"], exp: 3, langs: ["Hindi"], wage: 560, rating: 4.1, jobs: 29, days: [1, 2, 3, 4, 5, 6], from: "08:00", to: "18:00", bio: "General site work and painting support.", verified: true },
+
+  // Skilled trades and finishing
+  { name: "Farid Ansari", locality: "Malviya Nagar", cats: ["tile-worker", "mason"], exp: 15, langs: ["Hindi", "Urdu"], wage: 950, rating: 4.8, jobs: 143, days: [1, 2, 3, 4, 5, 6], from: "08:00", to: "18:00", bio: "Marble, vitrified and designer tiles. Level and spacing done properly.", verified: true },
+  { name: "Gurpreet Singh", locality: "Vishwakarma", cats: ["welder"], exp: 17, langs: ["Hindi", "Punjabi"], wage: 1000, rating: 4.7, jobs: 168, days: [1, 2, 3, 4, 5, 6], from: "08:00", to: "19:00", bio: "Gates, grills, railings and staircases. Own welding set and generator.", verified: true },
+  { name: "Naveen Tak", locality: "Mansarovar", cats: ["ac-technician", "electrician"], exp: 9, langs: ["Hindi", "English"], wage: 600, rating: 4.6, jobs: 402, days: [1, 2, 3, 4, 5, 6, 0], from: "09:00", to: "20:00", bio: "Split and window AC service, gas charging, fridge and washing machine repair.", verified: true },
+  { name: "Ritu Khandelwal", locality: "C-Scheme", cats: ["interior"], exp: 11, langs: ["Hindi", "English"], wage: 48000, rating: 4.9, jobs: 37, days: [1, 2, 3, 4, 5], from: "10:00", to: "18:00", bio: "Modular kitchens, wardrobes and false ceiling. Turnkey interiors for 2-4 BHK homes.", verified: true },
+  { name: "Shyam Sunder Mali", locality: "Vaishali Nagar", cats: ["landscaper", "gardener"], exp: 22, langs: ["Hindi", "Rajasthani"], wage: 850, rating: 4.8, jobs: 96, days: [1, 2, 3, 4, 5, 6], from: "06:00", to: "14:00", bio: "Lawn laying, garden design and seasonal planting for bungalows.", verified: true },
+
+  // Machinery — operator arrives with the machine
+  { name: "Devendra Chaudhary", locality: "Jagatpura", cats: ["jcb-operator"], exp: 13, langs: ["Hindi"], wage: 4800, rating: 4.7, jobs: 210, days: [1, 2, 3, 4, 5, 6], from: "07:00", to: "19:00", bio: "JCB 3DX for digging, levelling and trenching. Rate includes machine and diesel.", verified: true },
+  { name: "Imran Khan", locality: "Vishwakarma", cats: ["crane-operator"], exp: 10, langs: ["Hindi", "Urdu"], wage: 6200, rating: 4.6, jobs: 88, days: [1, 2, 3, 4, 5, 6], from: "07:00", to: "19:00", bio: "14-ton hydra for slab material and heavy lifts. Licensed operator.", verified: true },
+  { name: "Rajendra Yadav", locality: "Mansarovar", cats: ["transport"], exp: 8, langs: ["Hindi"], wage: 2400, rating: 4.4, jobs: 315, days: [1, 2, 3, 4, 5, 6, 0], from: "06:00", to: "21:00", bio: "Tipper and tractor-trolley for sand, cement, steel and malba removal.", verified: true },
+
+  // Professionals who lead or certify the build
+  { name: "Ar. Kavita Joshi", locality: "C-Scheme", cats: ["architect"], exp: 14, langs: ["Hindi", "English"], wage: 95000, rating: 4.9, jobs: 52, days: [1, 2, 3, 4, 5], from: "10:00", to: "18:00", bio: "Residential drawings, elevation and JDA approval drawings. COA registered.", verified: true },
+  { name: "Er. Manish Agarwal", locality: "Malviya Nagar", cats: ["civil-engineer", "supervisor"], exp: 16, langs: ["Hindi", "English"], wage: 65000, rating: 4.8, jobs: 61, days: [1, 2, 3, 4, 5, 6], from: "09:00", to: "18:00", bio: "Structural design, estimation and quality sign-off. Handles RCC detailing.", verified: true },
+  { name: "Bhupendra Sharma", locality: "Jagatpura", cats: ["contractor-civil"], exp: 21, langs: ["Hindi"], wage: 260000, rating: 4.6, jobs: 34, days: [1, 2, 3, 4, 5, 6], from: "08:00", to: "19:00", bio: "Turnkey residential construction with labour and material. 20+ houses delivered in east Jaipur.", verified: true },
+  { name: "Suresh Chand Saini", locality: "Vidhyadhar Nagar", cats: ["supervisor"], exp: 12, langs: ["Hindi"], wage: 1600, rating: 4.5, jobs: 73, days: [1, 2, 3, 4, 5, 6], from: "08:00", to: "19:00", bio: "Daily site control, labour attendance and material checking.", verified: true },
+  { name: "Mohit Verma", locality: "Mansarovar", cats: ["surveyor"], exp: 7, langs: ["Hindi", "English"], wage: 13000, rating: 4.5, jobs: 119, days: [1, 2, 3, 4, 5, 6], from: "07:00", to: "17:00", bio: "Plot marking, levels and boundary verification with total station.", verified: true },
 ];
 
 type HouseholdSeed = { name: string; locality: string; address: string };
@@ -475,20 +495,7 @@ export function buildSeed(): SeedData {
 }
 
 function buildStats(workers: WorkerProfile[]): AggregatedStat[] {
-  const trades: CategoryId[] = [
-    "cleaner",
-    "cook",
-    "house-helper",
-    "gardener",
-    "plumber",
-    "electrician",
-    "mover",
-    "mason",
-    "carpenter",
-    "painter",
-    "bar-bender",
-    "helper",
-  ];
+  const trades: CategoryId[] = CATEGORIES.map((c) => c.id);
   const periods = ["2026-03", "2026-04", "2026-05", "2026-06", "2026-07", "2026-08"];
   const out: AggregatedStat[] = [];
   let s = 13;

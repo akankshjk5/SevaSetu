@@ -105,6 +105,42 @@ Two clearly separated surfaces:
 Phase 4 and Phase 5 render the **same component** (`src/components/AnalyticsDashboard.tsx`) over the same
 pre-aggregated table: built once, surfaced twice.
 
+## The construction chain — the core differentiator
+
+Existing platforms answer "book a service professional". This one answers "find the right workforce for a
+project", and `/build` is where that claim becomes concrete.
+
+Give it one number — the built-up area — and it returns the **whole workforce in the order the work actually
+happens**, rather than sixteen separate searches:
+
+> Architect → Surveyor → Civil engineer → Contractor → JCB operator → Mason → Bar bender → Supervisor →
+> Transport → Electrician → Plumber → Welder → Tile worker → Carpenter → Painter → Interior → AC technician →
+> Landscaper → Deep clean
+
+`src/lib/construction.ts` holds the eight build phases, the roles each needs, headcount per 1000 sq ft and
+days engaged. `planBuild(sqft)` turns that into headcount, duration, indicative cost and — importantly — how
+many verified workers the platform actually has for each trade today. Trades with nobody verified are listed
+as gaps rather than quietly omitted, so the plan stays honest.
+
+Professionals (architect, engineer, contractor, interior) are priced **per project**; trades by the day;
+operators arrive with the machine. `tier` on each category carries that distinction.
+
+## The trade taxonomy
+
+25 categories across five tiers, covering household help, skilled trades, machinery and the professionals who
+lead a build:
+
+| Tier | Categories |
+| --- | --- |
+| Household | cleaning, cook, house helper, gardener |
+| Skilled trade | plumber, electrician, carpenter, painter, mason, tile worker, welder/fabricator, AC & appliance technician, landscaping, bar bender |
+| Machinery | JCB/excavator operator, crane/hydra operator, transport & material delivery |
+| Professional | civil contractor, site supervisor, civil engineer, architect, surveyor, interior & renovation |
+| Support | site helper, mover/packer |
+
+The aggregated district statistics derive their trade list from this taxonomy, so a new category can never be
+silently missing from the government view.
+
 ## Worker portraits, and how to use real photos
 
 Worker avatars are **illustrations, not photographs** (`src/components/WorkerAvatar.tsx`). This build ships no

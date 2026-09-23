@@ -54,6 +54,13 @@ export default async function LandingPage() {
           <nav className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-semibold">
             <LanguageSwitcher locale={locale} />
             <Link
+              href="/build"
+              data-tap
+              className="hidden rounded-lg border border-amber-300 bg-amber-50 px-2.5 py-1 font-bold text-amber-900 transition hover:bg-amber-100 sm:inline-flex"
+            >
+              🏗️ {t("build.nav")}
+            </Link>
+            <Link
               href="/login?role=worker"
               data-tap
               className="hidden rounded-lg border border-slate-200 px-2.5 py-1 text-slate-700 transition hover:bg-slate-50 md:inline-flex"
