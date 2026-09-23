@@ -1,7 +1,7 @@
 import { currentWorker } from "@/lib/session";
 import { listingsForTrades, skillPassport } from "@/lib/repo-phases";
 import { addCertification, schedulePractical } from "@/lib/actions-phases";
-import { PRACTICAL_TRADES, QUIZZES } from "@/lib/quiz";
+import { PRACTICAL_TRADES, QUIZZES, publicQuestions } from "@/lib/quiz";
 import { getI18n } from "@/i18n/server";
 import { CertifiedBadge, Section } from "@/components/ui";
 import { PhaseBadge, PhaseBanner } from "@/components/PhaseBadge";
@@ -108,7 +108,7 @@ export default async function PassportPage({ searchParams }: { searchParams: Pro
                   </div>
                 ) : questions ? (
                   <div className="mt-3">
-                    <SkillQuiz trade={trade} questions={questions} />
+                    <SkillQuiz trade={trade} questions={publicQuestions(trade)} />
                   </div>
                 ) : null}
               </li>

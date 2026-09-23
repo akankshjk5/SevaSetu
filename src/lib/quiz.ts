@@ -1,5 +1,9 @@
 import type { CategoryId } from "./types";
-import type { QuizQuestion } from "@/app/worker/passport/SkillQuiz";
+/** A question with its answer key — server-side only. */
+export type QuizQuestion = { q: string; options: string[]; answer: number };
+
+/** What the browser is allowed to see: the question, minus the answer. */
+export type PublicQuizQuestion = { q: string; options: string[] };
 
 /**
  * Short, practical questions per trade — the kind a supervisor would actually
@@ -185,3 +189,24 @@ export const QUIZZES: Partial<Record<CategoryId, QuizQuestion[]>> = {
 };
 
 export const PRACTICAL_TRADES: CategoryId[] = ["electrician", "plumber"];
+
+
+/** Questions with the answer key removed, safe to render in a client component. */
+export function publicQuestions(trade: CategoryId): PublicQuizQuestion[] {
+  return (QUIZZES[trade] ?? []).map(({ q, options }) => ({ q, options }));
+}
+
+/**
+ * Grades a submission on the server.
+ *
+ * The score used to be computed in the browser and posted in a hidden field,
+ * which meant a worker could POST a perfect score and earn the "Certified"
+ * badge households filter on without answering anything. Marks are now derived
+ * here from the submitted answers against the key, which never leaves the server.
+ */
+export function gradeQuiz(trade: CategoryId, answers: number[]): { score: number; total: number } {
+  const questions = QUIZZES[trade] ?? [];
+  if (!questions.length) return { score: 0, total: 0 };
+  const correct = questions.filter((question, i) => answers[i] === question.answer).length;
+  return { score: Math.round((correct / questions.length) * 100), total: questions.length };
+}

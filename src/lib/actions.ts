@@ -5,10 +5,23 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { LANG_COOKIE, SIMPLE_COOKIE, isLocale } from "@/i18n/config";
 import { db, nextId, resetDb } from "./store";
-import { clearSession, currentHousehold, currentUser, currentWorker, setSession } from "./session";
+import { clearSession, currentUser, setSession } from "./session";
+import {
+  AuthError,
+  clampNumber,
+  oneOf,
+  requireAdmin,
+  requireAssignedBooking,
+  requireBookingParty,
+  requireHousehold,
+  requireOwnBooking,
+  requireUser,
+  requireWorker,
+  text,
+} from "./guard";
 import { smsProvider } from "./integrations/sms";
 import { identityProvider } from "./integrations/identity";
-import { applyRating, getBooking, getWorker } from "./repo";
+import { applyRating, getBooking, getPaymentForBooking, getWorker } from "./repo";
 import {
   addReview,
   advanceBooking,
@@ -19,9 +32,49 @@ import {
   respondToBooking,
 } from "./services";
 import { ZONES } from "./seed";
+import { CATEGORY_MAP } from "./categories";
 import type { BookingStatus, BookingType, CategoryId, Role } from "./types";
 
 const zoneFor = (name: string) => ZONES.find((z) => z.name === name) ?? ZONES[0];
+
+const ZONE_NAMES = ZONES.map((z) => z.name) as [string, ...string[]];
+const BOOKING_TYPES = ["one-time", "daily", "weekly", "recurring"] as const;
+const BOOKING_STATUSES = [
+  "requested",
+  "confirmed",
+  "en-route",
+  "arrived",
+  "in-progress",
+  "completed",
+  "cancelled",
+  "declined",
+] as const;
+const PAYMENT_METHODS = ["upi", "card", "cash"] as const;
+const VERIFICATION_STEPS = ["govId", "policeCheck", "skillCheck", "insurance"] as const;
+
+/** A YYYY-MM-DD from the form, or today. */
+function isoDate(value: FormDataEntryValue | null): string {
+  const s = String(value ?? "");
+  return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : new Date().toISOString().slice(0, 10);
+}
+
+/** An HH:MM from the form, or the fallback. */
+function clockTime(value: FormDataEntryValue | null, fallback: string): string {
+  const s = String(value ?? "");
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(s) ? s : fallback;
+}
+
+/** "1,2,3" from the form, filtered to real weekday indexes. */
+function dayList(value: FormDataEntryValue | null): number[] {
+  return [
+    ...new Set(
+      String(value ?? "")
+        .split(",")
+        .map(Number)
+        .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6),
+    ),
+  ];
+}
 
 // ------------------------------------------------------------ language ----
 
@@ -167,6 +220,8 @@ export async function logout() {
 }
 
 export async function resetDemoData() {
+  // Wipes every booking, payment and review in the demo — signed-in users only.
+  await requireUser();
   resetDb();
   await clearSession();
   redirect("/");
@@ -175,24 +230,30 @@ export async function resetDemoData() {
 // ----------------------------------------------------------- household ----
 
 export async function bookWorker(formData: FormData) {
-  const household = await currentHousehold();
-  if (!household) redirect("/login?role=household");
+  const household = await requireHousehold();
 
-  const workerId = String(formData.get("workerId"));
-  const worker = getWorker(workerId);
+  const worker = getWorker(text(formData.get("workerId"), 60));
   if (!worker) redirect("/household/post");
+  // Only a verified worker can be booked — the badge is the whole promise, and
+  // the check belongs here rather than only on the button that renders it.
+  if (!worker.verified) throw new AuthError("Worker is not verified");
+
+  const category = oneOf(formData.get("category"), worker.categories, worker.categories[0]);
+  const type = oneOf(formData.get("type"), BOOKING_TYPES, "one-time");
 
   const booking = await createBooking({
     householdId: household.id,
-    workerId,
-    category: String(formData.get("category")) as CategoryId,
-    type: String(formData.get("type") ?? "one-time") as BookingType,
-    date: String(formData.get("date") || new Date().toISOString().slice(0, 10)),
-    time: String(formData.get("time") || worker.availableFrom),
-    days: String(formData.get("days") ?? "").split(",").filter(Boolean).map(Number),
-    durationMins: Number(formData.get("durationMins") ?? 90),
-    price: Number(formData.get("price") ?? worker.wage),
-    notes: String(formData.get("notes") ?? ""),
+    workerId: worker.id,
+    category,
+    type,
+    date: isoDate(formData.get("date")),
+    time: clockTime(formData.get("time"), worker.availableFrom),
+    days: dayList(formData.get("days")),
+    durationMins: clampNumber(formData.get("durationMins"), 15, 600, 90),
+    // The price is the worker's advertised wage, read from the worker record.
+    // Taking it from the form let a booking be created at any amount.
+    price: worker.wage,
+    notes: text(formData.get("notes"), 400),
   });
 
   revalidatePath("/household");
@@ -201,8 +262,9 @@ export async function bookWorker(formData: FormData) {
 }
 
 export async function setBookingStatus(formData: FormData) {
-  const bookingId = String(formData.get("bookingId"));
-  advanceBooking(bookingId, String(formData.get("status")) as BookingStatus);
+  const bookingId = text(formData.get("bookingId"), 60);
+  await requireBookingParty(bookingId);
+  advanceBooking(bookingId, oneOf(formData.get("status"), BOOKING_STATUSES, "confirmed"));
   revalidatePath("/household");
   revalidatePath("/worker");
   revalidatePath("/admin");
@@ -211,27 +273,37 @@ export async function setBookingStatus(formData: FormData) {
 }
 
 export async function payForBooking(formData: FormData) {
-  const bookingId = String(formData.get("bookingId"));
-  await payBooking(bookingId, String(formData.get("method") ?? "upi") as "upi" | "card" | "cash");
+  const bookingId = text(formData.get("bookingId"), 60);
+  const { booking } = await requireOwnBooking(bookingId);
+
+  // Pay once, and only for work that is done.
+  if (booking.status !== "completed") throw new AuthError("Booking is not completed yet");
+  const existing = getPaymentForBooking(bookingId);
+  if (existing && existing.status !== "pending") redirect(`/household/bookings/${bookingId}?paid=1`);
+
+  await payBooking(bookingId, oneOf(formData.get("method"), PAYMENT_METHODS, "upi"));
   revalidatePath(`/household/bookings/${bookingId}`);
   revalidatePath("/worker/earnings");
   redirect(`/household/bookings/${bookingId}?paid=1`);
 }
 
 export async function submitReview(formData: FormData) {
-  const household = await currentHousehold();
-  const bookingId = String(formData.get("bookingId"));
-  const booking = getBooking(bookingId);
-  if (!household || !booking) return;
+  const bookingId = text(formData.get("bookingId"), 60);
+  const { household, booking } = await requireOwnBooking(bookingId);
+
+  // You can only review work that happened, and only once — otherwise a
+  // household could drive a worker's rating up or down at will.
+  if (booking.status !== "completed") throw new AuthError("Booking is not completed yet");
+  if (booking.reviewId) redirect(`/household/bookings/${bookingId}?reviewed=1`);
 
   addReview({
     bookingId,
     householdId: household.id,
     householdName: household.name,
-    quality: Number(formData.get("quality") ?? 5),
-    punctuality: Number(formData.get("punctuality") ?? 5),
-    professionalism: Number(formData.get("professionalism") ?? 5),
-    text: String(formData.get("text") ?? "").trim(),
+    quality: clampNumber(formData.get("quality"), 1, 5, 5),
+    punctuality: clampNumber(formData.get("punctuality"), 1, 5, 5),
+    professionalism: clampNumber(formData.get("professionalism"), 1, 5, 5),
+    text: text(formData.get("text"), 600),
   });
 
   revalidatePath(`/household/bookings/${bookingId}`);
@@ -240,39 +312,42 @@ export async function submitReview(formData: FormData) {
 }
 
 export async function togglePause(formData: FormData) {
-  const b = getBooking(String(formData.get("bookingId")));
-  if (!b?.schedule) return;
-  b.schedule.paused = !b.schedule.paused;
+  const { booking } = await requireOwnBooking(text(formData.get("bookingId"), 60));
+  if (!booking.schedule) return;
+  booking.schedule.paused = !booking.schedule.paused;
   revalidatePath("/household/team");
-  revalidatePath(`/household/bookings/${b.id}`);
+  revalidatePath(`/household/bookings/${booking.id}`);
 }
 
 export async function cancelBooking(formData: FormData) {
-  const b = getBooking(String(formData.get("bookingId")));
-  if (!b) return;
-  b.status = "cancelled";
+  const { booking } = await requireOwnBooking(text(formData.get("bookingId"), 60));
+  if (booking.status === "completed") throw new AuthError("Completed work cannot be cancelled");
+  booking.status = "cancelled";
   revalidatePath("/household");
-  revalidatePath(`/household/bookings/${b.id}`);
+  revalidatePath(`/household/bookings/${booking.id}`);
 }
 
 export async function requestReplacement(formData: FormData) {
-  const bookingId = String(formData.get("bookingId"));
+  const bookingId = text(formData.get("bookingId"), 60);
+  await requireOwnBooking(bookingId);
   await assignReplacement(bookingId);
   revalidatePath(`/household/bookings/${bookingId}`);
   revalidatePath("/household/team");
 }
 
 export async function raiseDispute(formData: FormData) {
-  const user = await currentUser();
-  const bookingId = String(formData.get("bookingId"));
-  if (!user) return;
+  const bookingId = text(formData.get("bookingId"), 60);
+  // Either side of the booking may raise one, but only about their own job.
+  const booking = await requireBookingParty(bookingId);
+  const user = await requireUser();
+
   db().disputes.push({
     id: nextId("dp"),
-    bookingId,
+    bookingId: booking.id,
     raisedBy: user.role === "worker" ? "worker" : "household",
     raisedByName: user.name,
-    reason: String(formData.get("reason") ?? "Other"),
-    detail: String(formData.get("detail") ?? ""),
+    reason: text(formData.get("reason"), 120) || "Other",
+    detail: text(formData.get("detail"), 800),
     status: "open",
     notes: [],
     createdAt: new Date().toISOString(),
@@ -284,26 +359,31 @@ export async function raiseDispute(formData: FormData) {
 // -------------------------------------------------------------- worker ----
 
 export async function saveWorkerProfile(formData: FormData) {
-  const worker = await currentWorker();
-  if (!worker) redirect("/login?role=worker");
+  const worker = await requireWorker();
 
-  const categories = formData.getAll("categories").map(String) as CategoryId[];
-  const locality = String(formData.get("locality") || worker.locality);
+  // Only real trades, and only ones this build offers.
+  const categories = formData
+    .getAll("categories")
+    .map(String)
+    .filter((c): c is CategoryId => c in CATEGORY_MAP);
+  const locality = oneOf(formData.get("locality"), ZONE_NAMES, worker.locality as (typeof ZONE_NAMES)[number]);
   const z = zoneFor(locality);
 
   Object.assign(worker, {
-    name: String(formData.get("name") || worker.name),
+    name: text(formData.get("name"), 80) || worker.name,
     locality,
     district: locality,
     location: { lat: z.lat, lng: z.lng },
     categories: categories.length ? categories : worker.categories,
-    experienceYears: Number(formData.get("experienceYears") ?? worker.experienceYears),
-    languages: String(formData.get("languages") ?? worker.languages.join(", "))
+    experienceYears: clampNumber(formData.get("experienceYears"), 0, 60, worker.experienceYears),
+    languages: text(formData.get("languages"), 200)
       .split(",")
       .map((s) => s.trim())
-      .filter(Boolean),
-    wage: Number(formData.get("wage") ?? worker.wage),
-    bio: String(formData.get("bio") ?? worker.bio),
+      .filter(Boolean)
+      .slice(0, 8) || worker.languages,
+    // A wage of zero or a negative number would break payouts and ranking.
+    wage: clampNumber(formData.get("wage"), 1, 200000, worker.wage),
+    bio: text(formData.get("bio"), 600),
   });
 
   revalidatePath("/worker");
@@ -311,32 +391,31 @@ export async function saveWorkerProfile(formData: FormData) {
 }
 
 export async function saveAvailability(formData: FormData) {
-  const worker = await currentWorker();
-  if (!worker) return;
-  const days = formData.getAll("days").map(Number);
+  const worker = await requireWorker();
+  const days = [...new Set(formData.getAll("days").map(Number))].filter((d) => Number.isInteger(d) && d >= 0 && d <= 6);
   worker.availableDays = days;
-  worker.availableFrom = String(formData.get("from") || worker.availableFrom);
-  worker.availableTo = String(formData.get("to") || worker.availableTo);
+  worker.availableFrom = clockTime(formData.get("from"), worker.availableFrom);
+  worker.availableTo = clockTime(formData.get("to"), worker.availableTo);
   revalidatePath("/worker/availability");
   redirect("/worker/availability?saved=1");
 }
 
 export async function submitVerificationStep(formData: FormData) {
-  const worker = await currentWorker();
-  if (!worker) return;
+  const worker = await requireWorker();
   const rec = db().verifications.find((v) => v.workerId === worker.id);
   if (!rec) return;
-  const step = String(formData.get("step"));
+  const step = oneOf(formData.get("step"), VERIFICATION_STEPS, "govId");
+  const docType = text(formData.get("docType"), 40) || "Aadhaar";
 
   if (step === "govId") {
     const res = await identityProvider.submitId({
       workerId: worker.id,
-      docType: String(formData.get("docType") ?? "Aadhaar"),
-      docNumber: String(formData.get("docNumber") ?? "0000"),
+      docType,
+      docNumber: text(formData.get("docNumber"), 40) || "0000",
     });
     rec.govId = {
       status: "pending",
-      docType: String(formData.get("docType") ?? "Aadhaar"),
+      docType,
       docNumberMasked: res.docNumberMasked,
       submittedAt: new Date().toISOString(),
     };
@@ -360,9 +439,12 @@ export async function submitVerificationStep(formData: FormData) {
 }
 
 export async function respondToJob(formData: FormData) {
-  const worker = await currentWorker();
-  if (!worker) return;
-  await respondToBooking(String(formData.get("bookingId")), String(formData.get("accept")) === "yes");
+  const bookingId = text(formData.get("bookingId"), 60);
+  // Only the worker the job was offered to may answer it.
+  const { booking } = await requireAssignedBooking(bookingId);
+  if (booking.status !== "requested") throw new AuthError("This job has already been answered");
+
+  await respondToBooking(bookingId, String(formData.get("accept")) === "yes");
   revalidatePath("/worker");
   revalidatePath("/household");
   redirect("/worker/jobs");
@@ -371,21 +453,23 @@ export async function respondToJob(formData: FormData) {
 // --------------------------------------------------------------- admin ----
 
 export async function decideVerification(formData: FormData) {
+  // Approving a worker makes them bookable and insured. Ops only.
+  await requireAdmin();
   await decideWorkerVerification(
-    String(formData.get("workerId")),
+    text(formData.get("workerId"), 60),
     String(formData.get("decision")) === "approve",
-    String(formData.get("note") ?? ""),
+    text(formData.get("note"), 400),
   );
   revalidatePath("/admin/verification");
   revalidatePath("/worker/verification");
 }
 
 export async function resolveDispute(formData: FormData) {
-  const user = await currentUser();
-  const d = db().disputes.find((x) => x.id === String(formData.get("disputeId")));
+  const user = await requireAdmin();
+  const d = db().disputes.find((x) => x.id === text(formData.get("disputeId"), 60));
   if (!d) return;
-  const resolution = String(formData.get("resolution") ?? "").trim();
-  d.notes.push({ at: new Date().toISOString(), by: user?.name ?? "Ops", text: resolution });
+  const resolution = text(formData.get("resolution"), 600);
+  d.notes.push({ at: new Date().toISOString(), by: user.name, text: resolution });
   d.status = "resolved";
   d.resolution = resolution;
   d.resolvedAt = new Date().toISOString();
@@ -393,15 +477,16 @@ export async function resolveDispute(formData: FormData) {
 }
 
 export async function addDisputeNote(formData: FormData) {
-  const user = await currentUser();
-  const d = db().disputes.find((x) => x.id === String(formData.get("disputeId")));
+  const user = await requireAdmin();
+  const d = db().disputes.find((x) => x.id === text(formData.get("disputeId"), 60));
   if (!d) return;
-  d.notes.push({ at: new Date().toISOString(), by: user?.name ?? "Ops", text: String(formData.get("note") ?? "") });
+  d.notes.push({ at: new Date().toISOString(), by: user.name, text: text(formData.get("note"), 600) });
   revalidatePath("/admin/disputes");
 }
 
 export async function moderateReview(formData: FormData) {
-  const review = db().reviews.find((r) => r.id === String(formData.get("reviewId")));
+  await requireAdmin();
+  const review = db().reviews.find((r) => r.id === text(formData.get("reviewId"), 60));
   if (!review) return;
   const action = String(formData.get("action"));
   const wasCounted = review.status !== "removed";

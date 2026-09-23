@@ -4,22 +4,18 @@ import { useState } from "react";
 import { submitAssessment } from "@/lib/actions-phases";
 import { useI18n } from "@/i18n/client";
 import type { CategoryId } from "@/lib/types";
-
-export type QuizQuestion = { q: string; options: string[]; answer: number };
+import type { PublicQuizQuestion } from "@/lib/quiz";
 
 /**
  * Low-risk trades can prove skill with a short quiz. Electrician and plumber
  * work needs a practical check instead — that path is on the passport page.
  */
-export function SkillQuiz({ trade, questions }: { trade: CategoryId; questions: QuizQuestion[] }) {
+export function SkillQuiz({ trade, questions }: { trade: CategoryId; questions: PublicQuizQuestion[] }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [answers, setAnswers] = useState<Record<number, number>>({});
 
   const answered = Object.keys(answers).length;
-  const score = Math.round(
-    (questions.filter((q, i) => answers[i] === q.answer).length / Math.max(1, questions.length)) * 100,
-  );
 
   if (!open) {
     return (
@@ -32,7 +28,6 @@ export function SkillQuiz({ trade, questions }: { trade: CategoryId; questions: 
   return (
     <form action={submitAssessment} className="mt-3 space-y-4">
       <input type="hidden" name="trade" value={trade} />
-      <input type="hidden" name="score" value={score} />
 
       <div>
         <p className="font-bold">{t("sp.quiz.title", { trade: t(`cat.${trade}`) })}</p>

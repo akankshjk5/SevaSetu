@@ -242,12 +242,29 @@ The government dashboard and the training provider's gap view read **only** from
 `AggregatedStat` table (district × trade × month). Worker names, household addresses, phone numbers and
 individual bookings never reach them, and the CSV export is generated from the same aggregated rows.
 
+## Authorization
+
+Every server action is a public POST endpoint — Next's own guide is explicit that rendering a form on a gated
+page is not a security boundary. `src/lib/guard.ts` is the single place that decides who may do what:
+
+- `requireUser` / `requireHousehold` / `requireWorker` / `requireContractor` / `requireProvider` / `requireAdmin`
+  establish **who** the caller is, from the session.
+- `requireOwnBooking`, `requireAssignedBooking`, `requireBookingParty`, `requireOwnProject`,
+  `requireOwnAssignment`, `requireOwnWorkerAssignment`, `requireOwnRapidOrder` and `requireAttendanceParty`
+  establish that the row they named is **theirs**.
+- They throw `AuthError` rather than returning null, so a missed check fails loudly instead of writing.
+
+Amounts and outcomes are derived on the server, never read from the form: a booking is priced from the
+worker's wage record, a rapid fare from the shop table and a clamped distance, a quiz score from the answer
+key. `clampNumber`, `oneOf` and `text` bound every other field.
+
 ## Checks
 
 ```bash
-npm run check:flows   # 47 assertions across all five phase loops
-npm run check:i18n    # key coverage, pack parity, placeholder parity
-npm run build         # typecheck + production build
+npm run check:flows     # end-to-end walk of all five phase loops
+npm run check:security  # authorization, ownership and server-side pricing
+npm run check:i18n      # key coverage, pack parity, placeholder parity
+npm run build           # typecheck + production build
 ```
 
 ## Out of scope in this build

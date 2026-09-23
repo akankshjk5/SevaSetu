@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db, nextId } from "./store";
-import { currentHousehold } from "./session";
+import { clampNumber, oneOf, requireHousehold, requireOwnRapidOrder, text } from "./guard";
 import { notifyProvider } from "./integrations/notify";
 import { dictionaryFor, formatMoney, makeTranslator } from "@/i18n";
 import { localeForUser } from "./messages";
@@ -19,6 +19,9 @@ import {
 } from "./shops";
 import type { CategoryId, RapidOrder, RapidOrderKind, WorkerProfile } from "./types";
 
+const RAPID_KINDS = ["dukaan", "minutes", "runner"] as const;
+const RAPID_STATUSES = ["placed", "assigned", "picked-up", "delivered", "cancelled"] as const;
+
 /**
  * Places a hyperlocal order and finds someone to run it.
  *
@@ -27,12 +30,11 @@ import type { CategoryId, RapidOrder, RapidOrderKind, WorkerProfile } from "./ty
  * price that arrives from the client is not a price.
  */
 export async function placeRapidOrder(formData: FormData) {
-  const household = await currentHousehold();
-  if (!household) redirect("/login?role=household");
+  const household = await requireHousehold();
 
-  const kind = String(formData.get("kind") ?? "dukaan") as RapidOrderKind;
-  const notes = String(formData.get("notes") ?? "").trim();
-  const locality = String(formData.get("locality") || household.locality);
+  const kind = oneOf(formData.get("kind"), RAPID_KINDS, "dukaan");
+  const notes = text(formData.get("notes"), 400);
+  const locality = text(formData.get("locality"), 60) || household.locality;
 
   let fee = 0;
   let etaMins = 0;
@@ -42,22 +44,22 @@ export async function placeRapidOrder(formData: FormData) {
   let distanceKm: number | undefined;
 
   if (kind === "dukaan") {
-    const shop = getShop(String(formData.get("shopId") ?? ""));
+    const shop = getShop(text(formData.get("shopId"), 40));
     // A shop the customer typed in themselves is allowed — that is the point of
     // "your own shop" — but it is recorded as unverified free text.
-    shopName = shop?.name ?? String(formData.get("customShopName") ?? "").trim();
+    shopName = shop?.name ?? text(formData.get("customShopName"), 120);
     if (!shopName) redirect("/?rapid=missing-shop#rapid");
     shopId = shop?.id;
     fee = DUKAAN_FEE;
     etaMins = shop?.etaMins ?? 20;
   } else if (kind === "minutes") {
-    const asked = String(formData.get("trade") ?? "plumber");
+    const asked = text(formData.get("trade"), 40);
     if (!isUrgentTrade(asked)) redirect("/?rapid=bad-trade#rapid");
     trade = asked;
     fee = URGENT_VISIT_FEE;
     etaMins = urgentEtaMins(asked);
   } else {
-    distanceKm = Math.min(25, Math.max(1, Number(formData.get("distanceKm") ?? 3)));
+    distanceKm = clampNumber(formData.get("distanceKm"), 1, 25, 3);
     fee = runnerFare(distanceKm);
     etaMins = runnerEtaMins(distanceKm);
   }
@@ -140,10 +142,8 @@ function buildRapidMessage(order: RapidOrder, worker: WorkerProfile) {
 }
 
 export async function advanceRapidOrder(formData: FormData) {
-  const order = db().rapidOrders.find((o) => o.id === String(formData.get("orderId")));
-  if (!order) return;
-  const next = String(formData.get("status")) as RapidOrder["status"];
-  order.status = next;
+  const { order } = await requireOwnRapidOrder(text(formData.get("orderId"), 60));
+  order.status = oneOf(formData.get("status"), RAPID_STATUSES, order.status);
   revalidatePath(`/household/rapid/${order.id}`);
   revalidatePath("/admin");
 }

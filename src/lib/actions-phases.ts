@@ -9,22 +9,39 @@ import { getProject, projectAssignments } from "./repo-phases";
 import { scoreWorker } from "./match";
 import { notifyProvider } from "./integrations/notify";
 import { ZONES } from "./seed";
-import { siteDayRate } from "./categories";
+import { CATEGORIES, siteDayRate } from "./categories";
+import { QUIZZES, gradeQuiz } from "./quiz";
+import {
+  AuthError,
+  clampNumber,
+  oneOf,
+  requireAdmin,
+  requireAttendanceParty,
+  requireContractor,
+  requireOwnAssignment,
+  requireOwnProject,
+  requireOwnWorkerAssignment,
+  requireProvider,
+  requireUser,
+  requireWorker,
+  text,
+} from "./guard";
 import type { CategoryId, Project, ProjectRequirement } from "./types";
 
 const zoneFor = (name: string) => ZONES.find((z) => z.name === name) ?? ZONES[0];
+const ZONE_NAMES = ZONES.map((z) => z.name) as [string, ...string[]];
+const TRADE_IDS = CATEGORIES.map((c) => c.id) as [CategoryId, ...CategoryId[]];
 
 // ------------------------------------------------- Phase 2: workforce OS --
 
 export async function saveCompanyProfile(formData: FormData) {
-  const contractor = await currentContractor();
-  if (!contractor) redirect("/login?role=contractor");
-  const district = String(formData.get("district") || contractor.district);
+  const contractor = await requireContractor();
+  const district = oneOf(formData.get("district"), ZONE_NAMES, contractor.district as (typeof ZONE_NAMES)[number]);
   Object.assign(contractor, {
-    companyName: String(formData.get("companyName") || contractor.companyName),
-    contactName: String(formData.get("contactName") || contractor.contactName),
-    gst: String(formData.get("gst") ?? contractor.gst),
-    about: String(formData.get("about") ?? contractor.about),
+    companyName: text(formData.get("companyName"), 120) || contractor.companyName,
+    contactName: text(formData.get("contactName"), 80) || contractor.contactName,
+    gst: text(formData.get("gst"), 20),
+    about: text(formData.get("about"), 600),
     district,
     location: zoneFor(district),
   });
@@ -37,15 +54,13 @@ export async function saveCompanyProfile(formData: FormData) {
  * scoring function the household side uses — one matching engine, two UIs.
  */
 export async function createProject(formData: FormData) {
-  const contractor = await currentContractor();
-  if (!contractor) redirect("/login?role=contractor");
-
-  const district = String(formData.get("district") || contractor.district);
+  const contractor = await requireContractor();
+  const district = oneOf(formData.get("district"), ZONE_NAMES, contractor.district as (typeof ZONE_NAMES)[number]);
   const trades = formData.getAll("trades").map(String) as CategoryId[];
   const requirements: ProjectRequirement[] = trades.map((trade) => ({
     trade,
-    count: Math.max(1, Number(formData.get(`count_${trade}`) ?? 1)),
-    dailyRate: Math.max(1, Number(formData.get(`rate_${trade}`) ?? siteDayRate(trade))),
+    count: clampNumber(formData.get(`count_${trade}`), 1, 200, 1),
+    dailyRate: clampNumber(formData.get(`rate_${trade}`), 1, 50000, siteDayRate(trade)),
   }));
 
   const startDate = String(formData.get("startDate") || new Date().toISOString().slice(0, 10));
@@ -54,12 +69,12 @@ export async function createProject(formData: FormData) {
   const project: Project = {
     id: nextId("p"),
     contractorId: contractor.id,
-    name: String(formData.get("name") || "Untitled project"),
-    siteAddress: String(formData.get("siteAddress") || `${district}, Jaipur`),
+    name: text(formData.get("name"), 120) || "Untitled project",
+    siteAddress: text(formData.get("siteAddress"), 200) || `${district}, Jaipur`,
     district,
     location: zoneFor(district),
     startDate,
-    durationDays: Math.max(1, Number(formData.get("durationDays") ?? 30)),
+    durationDays: clampNumber(formData.get("durationDays"), 1, 730, 30),
     hoursFrom,
     hoursTo: String(formData.get("hoursTo") || "18:00"),
     requirements: requirements.length ? requirements : [{ trade: "helper", count: 1, dailyRate: 550 }],
@@ -112,9 +127,8 @@ function shortlistForProject(project: Project) {
 }
 
 export async function requestTeam(formData: FormData) {
-  const projectId = String(formData.get("projectId"));
-  const project = getProject(projectId);
-  if (!project) return;
+  const projectId = text(formData.get("projectId"), 60);
+  const { project } = await requireOwnProject(projectId);
 
   for (const a of projectAssignments(projectId)) {
     if (a.status !== "shortlisted") continue;
@@ -133,17 +147,17 @@ export async function requestTeam(formData: FormData) {
 }
 
 export async function requestOneWorker(formData: FormData) {
-  const a = db().assignments.find((x) => x.id === String(formData.get("assignmentId")));
-  if (!a || a.status !== "shortlisted") return;
+  const { assignment: a } = await requireOwnAssignment(text(formData.get("assignmentId"), 60));
+  if (a.status !== "shortlisted") return;
   a.status = "requested";
   revalidatePath(`/contractor/projects/${a.projectId}`);
   revalidatePath("/worker/jobs");
 }
 
 export async function respondToAssignment(formData: FormData) {
-  const worker = await currentWorker();
-  const a = db().assignments.find((x) => x.id === String(formData.get("assignmentId")));
-  if (!worker || !a) return;
+  // Only the worker the offer was made to may answer it.
+  const { assignment: a } = await requireOwnWorkerAssignment(text(formData.get("assignmentId"), 60));
+  if (a.status !== "requested" && a.status !== "shortlisted") throw new AuthError("This offer has already been answered");
   a.status = String(formData.get("accept")) === "yes" ? "confirmed" : "declined";
 
   const project = getProject(a.projectId);
@@ -164,8 +178,10 @@ export async function respondToAssignment(formData: FormData) {
  * dated attendance row per worker per project — is what production would store.
  */
 export async function siteCheckIn(formData: FormData) {
-  const a = db().assignments.find((x) => x.id === String(formData.get("assignmentId")));
-  if (!a) return;
+  // Attendance drives payroll, so only the worker on the assignment or the
+  // contractor running the project may record a day.
+  const a = await requireAttendanceParty(text(formData.get("assignmentId"), 60));
+  if (a.status !== "confirmed") throw new AuthError("Attendance only counts on a confirmed assignment");
   const today = new Date().toISOString().slice(0, 10);
   if (!a.attendance.includes(today)) a.attendance.push(today);
   a.paidDays = a.attendance.length;
@@ -174,8 +190,7 @@ export async function siteCheckIn(formData: FormData) {
 }
 
 export async function completeProject(formData: FormData) {
-  const project = getProject(String(formData.get("projectId")));
-  if (!project) return;
+  const { project } = await requireOwnProject(text(formData.get("projectId"), 60));
   project.status = "completed";
   project.completedAt = new Date().toISOString();
   for (const a of projectAssignments(project.id)) {
@@ -186,15 +201,20 @@ export async function completeProject(formData: FormData) {
 }
 
 export async function rateAssignment(formData: FormData) {
-  const user = await currentUser();
-  const a = db().assignments.find((x) => x.id === String(formData.get("assignmentId")));
-  if (!user || !a) return;
-  const rating = Number(formData.get("rating") ?? 5);
-  const text = String(formData.get("text") ?? "");
+  const user = await requireUser();
+  // Each side rates the other, and only on their own assignment.
+  const a =
+    user.role === "contractor"
+      ? (await requireOwnAssignment(text(formData.get("assignmentId"), 60))).assignment
+      : (await requireOwnWorkerAssignment(text(formData.get("assignmentId"), 60))).assignment;
+  if (a.status !== "completed") throw new AuthError("Rate after the work is finished");
+  const rating = clampNumber(formData.get("rating"), 1, 5, 5);
+  const review = text(formData.get("text"), 600);
 
   if (user.role === "contractor") {
+    if (a.contractorRating) throw new AuthError("Already rated");
     a.contractorRating = rating;
-    a.contractorReview = text;
+    a.contractorReview = review;
     const worker = getWorker(a.workerId);
     if (worker) {
       const total = worker.rating * worker.ratingCount + rating;
@@ -202,8 +222,9 @@ export async function rateAssignment(formData: FormData) {
       worker.rating = Math.round((total / worker.ratingCount) * 10) / 10;
     }
   } else {
+    if (a.workerRating) throw new AuthError("Already rated");
     a.workerRating = rating;
-    a.workerReview = text;
+    a.workerReview = review;
     const project = getProject(a.projectId);
     const contractor = db().contractors.find((c) => c.id === project?.contractorId);
     if (contractor) {
@@ -221,10 +242,15 @@ export async function rateAssignment(formData: FormData) {
 const PRACTICAL_TRADES: CategoryId[] = ["electrician", "plumber"];
 
 export async function submitAssessment(formData: FormData) {
-  const worker = await currentWorker();
-  if (!worker) redirect("/login?role=worker");
-  const trade = String(formData.get("trade")) as CategoryId;
-  const score = Number(formData.get("score") ?? 0);
+  const worker = await requireWorker();
+  const trade = oneOf(formData.get("trade"), worker.categories, worker.categories[0]);
+  if (!trade) throw new AuthError("Add a trade to your profile first");
+  if (PRACTICAL_TRADES.includes(trade)) throw new AuthError("This trade needs a practical check, not a quiz");
+
+  // Grade from the submitted answers against the key held on the server.
+  const answers = (QUIZZES[trade] ?? []).map((_, i) => clampNumber(formData.get(`a${i}`), 0, 9, -1));
+  const { score, total } = gradeQuiz(trade, answers);
+  if (!total) throw new AuthError("No quiz exists for this trade");
   const passed = score >= 70;
 
   const existing = db().assessments.find((a) => a.workerId === worker.id && a.trade === trade && a.mode === "quiz");
@@ -245,10 +271,9 @@ export async function submitAssessment(formData: FormData) {
 }
 
 export async function schedulePractical(formData: FormData) {
-  const worker = await currentWorker();
-  if (!worker) return;
-  const trade = String(formData.get("trade")) as CategoryId;
-  if (!PRACTICAL_TRADES.includes(trade)) return;
+  const worker = await requireWorker();
+  const trade = oneOf(formData.get("trade"), PRACTICAL_TRADES, PRACTICAL_TRADES[0]);
+  if (!worker.categories.includes(trade)) throw new AuthError("Not one of your trades");
 
   const when = new Date();
   when.setDate(when.getDate() + 3);
@@ -269,16 +294,15 @@ export async function schedulePractical(formData: FormData) {
 }
 
 export async function addCertification(formData: FormData) {
-  const worker = await currentWorker();
-  if (!worker) return;
-  const name = String(formData.get("name") ?? "").trim();
+  const worker = await requireWorker();
+  const name = text(formData.get("name"), 120);
   if (!name) return;
   db().certifications.push({
     id: nextId("cert"),
     workerId: worker.id,
     name,
-    issuer: String(formData.get("issuer") ?? "").trim(),
-    year: Number(formData.get("year") ?? new Date().getFullYear()),
+    issuer: text(formData.get("issuer"), 120),
+    year: clampNumber(formData.get("year"), 1950, new Date().getFullYear(), new Date().getFullYear()),
     verified: false,
     createdAt: new Date().toISOString(),
   });
@@ -288,19 +312,18 @@ export async function addCertification(formData: FormData) {
 // -------------------------------------------- Phase 3: training provider --
 
 export async function publishListing(formData: FormData) {
-  const provider = await currentProvider();
-  if (!provider) redirect("/login?role=training");
+  const provider = await requireProvider();
   db().listings.push({
     id: nextId("tl"),
     providerId: provider.id,
     providerName: provider.orgName,
-    title: String(formData.get("title") || "Untitled course"),
-    trade: String(formData.get("trade")) as CategoryId,
-    district: String(formData.get("district") || provider.district),
-    durationDays: Number(formData.get("durationDays") ?? 10),
-    fee: Number(formData.get("fee") ?? 0),
-    seats: Number(formData.get("seats") ?? 20),
-    about: String(formData.get("about") ?? ""),
+    title: text(formData.get("title"), 120) || "Untitled course",
+    trade: oneOf(formData.get("trade"), TRADE_IDS, "cleaner"),
+    district: oneOf(formData.get("district"), ZONE_NAMES, provider.district as (typeof ZONE_NAMES)[number]),
+    durationDays: clampNumber(formData.get("durationDays"), 1, 365, 10),
+    fee: clampNumber(formData.get("fee"), 0, 500000, 0),
+    seats: clampNumber(formData.get("seats"), 1, 1000, 20),
+    about: text(formData.get("about"), 800),
     createdAt: new Date().toISOString(),
   });
   revalidatePath("/training");
@@ -329,7 +352,8 @@ export async function submitInquiry(formData: FormData) {
 }
 
 export async function markInquiryContacted(formData: FormData) {
-  const inquiry = db().inquiries.find((i) => i.id === String(formData.get("inquiryId")));
+  await requireAdmin();
+  const inquiry = db().inquiries.find((i) => i.id === text(formData.get("inquiryId"), 60));
   if (inquiry) inquiry.status = "contacted";
   revalidatePath("/admin/inquiries");
 }
